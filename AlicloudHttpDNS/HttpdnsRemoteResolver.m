@@ -30,17 +30,18 @@
 #import "HttpdnsRequestManager.h"
 #import "HttpdnsCFHttpWrapper.h"
 #import "HttpdnsIpStackDetector.h"
+#import "HttpdnsNWHTTPClient.h"
+#import <stdint.h>
 
 
 static dispatch_queue_t _streamOperateSyncQueue = 0;
 
-static NSURLSession *_resolveHostSession = nil;
-
-@interface HttpdnsRemoteResolver () <NSStreamDelegate, NSURLSessionTaskDelegate, NSURLSessionDataDelegate>
+@interface HttpdnsRemoteResolver () <NSStreamDelegate>
 
 @property (nonatomic, strong) NSRunLoop *runloop;
 @property (nonatomic, strong) NSError *networkError;
 @property (nonatomic, weak) HttpDnsService *service;
+@property (nonatomic, strong) HttpdnsNWHTTPClient *httpClient;
 
 @end
 
@@ -72,12 +73,8 @@ static NSURLSession *_resolveHostSession = nil;
         self.networkError = nil;
         _responseResolved = NO;
         _compeleted = NO;
+        _httpClient = [HttpdnsNWHTTPClient new];
 
-        static dispatch_once_t onceToken;
-        dispatch_once(&onceToken, ^{
-            NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
-            _resolveHostSession = [NSURLSession sessionWithConfiguration:configuration delegate:self delegateQueue:nil];
-        });
     }
     return self;
 }
@@ -374,7 +371,6 @@ static NSURLSession *_resolveHostSession = nil;
                                            signature:signature
                                              request:request];
 
-    HttpdnsLogDebug("Constructed v2 API URL: %@", finalUrl);
     return finalUrl;
 }
 
@@ -635,10 +631,12 @@ static NSURLSession *_resolveHostSession = nil;
     return nil;
 }
 
-- (NSArray<HttpdnsHostObject *> *)sendRequest:(NSString *)urlStr queryIpType:(HttpdnsQueryIPType)queryIPType error:(NSError **)error {
+- (NSArray<HttpdnsHostObject *> *)sendRequest:(NSString *)urlStr queryIpType:(HttpdnsQueryIPType)queryIpType error:(NSError **)error {
     if (![HttpdnsUtil isNotEmptyString:urlStr]) {
         if (error) {
-            *error = [NSError errorWithDomain:ALICLOUD_HTTPDNS_ERROR_DOMAIN code:ALICLOUD_HTTPDNS_HTTPS_COMMON_ERROR_CODE userInfo:@{NSLocalizedDescriptionKey: @"Empty resolve URL due to missing scheduler"}];
+            *error = [NSError errorWithDomain:ALICLOUD_HTTPDNS_ERROR_DOMAIN
+                                         code:ALICLOUD_HTTPDNS_HTTPS_COMMON_ERROR_CODE
+                                     userInfo:@{NSLocalizedDescriptionKey: @"Empty resolve URL due to missing scheduler"}];
         }
         return nil;
     }
@@ -648,62 +646,51 @@ static NSURLSession *_resolveHostSession = nil;
             ? [NSString stringWithFormat:@"https://%@", urlStr]
             : [NSString stringWithFormat:@"http://%@", urlStr];
 
-        return [self sendURLSessionRequest:fullUrlStr error:error queryIpType:queryIPType];
+        NSTimeInterval timeout = httpdnsService.timeoutInterval > 0 ? httpdnsService.timeoutInterval : 10.0;
+        NSString *userAgent = [HttpdnsUtil generateUserAgent];
+        HttpdnsNWHTTPClientResponse *httpResponse = [self.httpClient performRequestWithURLString:fullUrlStr
+                                                                                        userAgent:userAgent
+                                                                                          timeout:timeout
+                                                                                            error:error];
+        if (!httpResponse) {
+            return nil;
+        }
+
+        if (httpResponse.statusCode != 200) {
+            if (error) {
+                NSString *errorMessage = [NSString stringWithFormat:@"Unsupported http status code: %ld", (long)httpResponse.statusCode];
+                *error = [NSError errorWithDomain:ALICLOUD_HTTPDNS_ERROR_DOMAIN
+                                             code:ALICLOUD_HTTP_UNSUPPORTED_STATUS_CODE
+                                         userInfo:@{NSLocalizedDescriptionKey: errorMessage}];
+            }
+            return nil;
+        }
+
+        NSError *jsonError = nil;
+        id jsonValue = [NSJSONSerialization JSONObjectWithData:httpResponse.body options:kNilOptions error:&jsonError];
+        if (jsonError) {
+            if (error) {
+                *error = jsonError;
+            }
+            return nil;
+        }
+
+        NSDictionary *json = [HttpdnsUtil getValidDictionaryFromJson:jsonValue];
+        if (!json) {
+            if (error) {
+                *error = [NSError errorWithDomain:ALICLOUD_HTTPDNS_ERROR_DOMAIN
+                                             code:ALICLOUD_HTTP_PARSE_JSON_FAILED
+                                         userInfo:@{NSLocalizedDescriptionKey: @"Failed to parse JSON response"}];
+            }
+            return nil;
+        }
+
+        return [self parseHttpdnsResponse:json withQueryIpType:queryIpType];
     } else {
         // 为了走HTTP时不强依赖用户的ATS配置，这里走使用CFHTTP实现的网络请求方式
         NSString *fullUrlStr = [NSString stringWithFormat:@"http://%@", urlStr];
-        return [self sendCFHTTPRequest:fullUrlStr error:error queryIpType:queryIPType];
+        return [self sendCFHTTPRequest:fullUrlStr error:error queryIpType:queryIpType];
     }
-}
-
-- (NSArray<HttpdnsHostObject *> *)sendURLSessionRequest:(NSString *)urlStr error:(NSError **)pError queryIpType:(HttpdnsQueryIPType)queryIpType {
-    HttpdnsLogDebug("Send URLSession request URL: %@", urlStr);
-    HttpDnsService *service = self.service ?: [HttpDnsService sharedInstance];
-    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[[NSURL alloc] initWithString:urlStr]
-                                                           cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
-                                                       timeoutInterval:service.timeoutInterval];
-
-    [request addValue:[HttpdnsUtil generateUserAgent] forHTTPHeaderField:@"User-Agent"];
-
-    __block NSDictionary *json = nil;
-    __block NSError *blockError = nil;
-    __weak typeof(self) weakSelf = self;
-
-    NSURLSessionTask *task = [_resolveHostSession dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
-        __strong typeof(weakSelf) strongSelf = weakSelf;
-        if (error) {
-            HttpdnsLogDebug("URLSession request network error, url: %@, error: %@", urlStr, error);
-            blockError = error;
-        } else {
-            NSInteger statusCode = [(NSHTTPURLResponse *)response statusCode];
-            HttpdnsLogDebug("Response code: %ld, body: %@", statusCode, [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding]);
-            if (statusCode == 200) {
-                id jsonValue = [NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&blockError];
-                if (!blockError) {
-                    json = [HttpdnsUtil getValidDictionaryFromJson:jsonValue];
-                }
-            } else {
-                NSString *errorMessage = [NSString stringWithFormat:@"Unsupported http status code: %ld", statusCode];
-                blockError = [NSError errorWithDomain:ALICLOUD_HTTPDNS_ERROR_DOMAIN code:ALICLOUD_HTTP_UNSUPPORTED_STATUS_CODE userInfo:@{NSLocalizedDescriptionKey: errorMessage}];
-            }
-        }
-        dispatch_semaphore_signal(strongSelf->_sem);
-    }];
-
-    [task resume];
-    dispatch_semaphore_wait(_sem, DISPATCH_TIME_FOREVER);
-
-    if (blockError && pError) {
-        *pError = blockError;
-        return nil;
-    }
-
-    if (!json && pError) {
-        *pError = [NSError errorWithDomain:ALICLOUD_HTTPDNS_ERROR_DOMAIN code:ALICLOUD_HTTP_PARSE_JSON_FAILED userInfo:@{NSLocalizedDescriptionKey: @"Failed to parse JSON response"}];
-        return nil;
-    }
-
-    return [self parseHttpdnsResponse:json withQueryIpType:queryIpType];
 }
 
 - (NSArray<HttpdnsHostObject *> *)sendCFHTTPRequest:(NSString *)urlStr error:(NSError **)pError queryIpType:(HttpdnsQueryIPType)queryIpType {
@@ -746,48 +733,6 @@ static NSURLSession *_resolveHostSession = nil;
 
     return [self parseHttpdnsResponse:json withQueryIpType:queryIpType];
 }
-
-#pragma mark - NSURLSessionTaskDelegate
-- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential *_Nullable))completionHandler {
-    if (!challenge) {
-        return;
-    }
-    NSURLSessionAuthChallengeDisposition disposition = NSURLSessionAuthChallengePerformDefaultHandling;
-    NSURLCredential *credential = nil;
-    NSString *host = ALICLOUD_HTTPDNS_VALID_SERVER_CERTIFICATE_IP;
-    if ([challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodServerTrust]) {
-        if ([self evaluateServerTrust:challenge.protectionSpace.serverTrust forDomain:host]) {
-            disposition = NSURLSessionAuthChallengeUseCredential;
-            credential = [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust];
-        } else {
-            disposition = NSURLSessionAuthChallengePerformDefaultHandling;
-        }
-    } else {
-        disposition = NSURLSessionAuthChallengePerformDefaultHandling;
-    }
-    completionHandler(disposition, credential);
-}
-
-- (BOOL)evaluateServerTrust:(SecTrustRef)serverTrust
-                  forDomain:(NSString *)domain {
-    NSMutableArray *policies = [NSMutableArray array];
-    if (domain) {
-        [policies addObject:(__bridge_transfer id) SecPolicyCreateSSL(true, (__bridge CFStringRef) domain)];
-    } else {
-        [policies addObject:(__bridge_transfer id) SecPolicyCreateBasicX509()];
-    }
-    SecTrustSetPolicies(serverTrust, (__bridge CFArrayRef) policies);
-    SecTrustResultType result;
-    SecTrustEvaluate(serverTrust, &result);
-    if (result == kSecTrustResultRecoverableTrustFailure) {
-        CFDataRef errDataRef = SecTrustCopyExceptions(serverTrust);
-        SecTrustSetExceptions(serverTrust, errDataRef);
-        SecTrustEvaluate(serverTrust, &result);
-    }
-    return (result == kSecTrustResultUnspecified || result == kSecTrustResultProceed);
-}
-
-
 #pragma mark - Helper Functions
 // 将extra字段转换为NSString类型
 - (NSString *)convertExtraToString:(id)extra {

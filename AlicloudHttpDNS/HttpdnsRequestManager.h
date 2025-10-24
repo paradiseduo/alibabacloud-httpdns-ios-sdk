@@ -22,9 +22,6 @@
 
 @class HttpDnsService;
 
-//V6版本默认只保留一个IP
-
-FOUNDATION_EXTERN NSString *const ALICLOUD_HTTPDNS_VALID_SERVER_CERTIFICATE_IP;
 
 @class HttpdnsHostObject;
 

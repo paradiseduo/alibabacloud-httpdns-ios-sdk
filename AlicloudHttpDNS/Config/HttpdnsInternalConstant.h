@@ -17,6 +17,8 @@ static const int HTTPDNS_DEFAULT_REQUEST_TIMEOUT_INTERVAL = 3;
 
 static const NSUInteger HTTPDNS_DEFAULT_AUTH_TIMEOUT_INTERVAL = 10 * 60;
 
+static NSString *const ALICLOUD_HTTPDNS_VALID_SERVER_CERTIFICATE_IP = @"203.107.1.1";
+
 // 在iOS14和iOS16，网络信息的获取权限受到越来越紧的限制
 // 除非用户主动声明需要相关entitlement，不然只能拿到空信息
 // 考虑大多数用户并不会申请这些权限，我们放弃针对细节的网络信息做缓存粒度隔离

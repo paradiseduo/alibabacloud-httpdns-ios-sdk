@@ -39,8 +39,6 @@
 #import "HttpdnsDB.h"
 
 
-NSString *const ALICLOUD_HTTPDNS_VALID_SERVER_CERTIFICATE_IP = @"203.107.1.1";
-
 static dispatch_queue_t _persistentCacheConcurrentQueue = NULL;
 static dispatch_queue_t _asyncResolveHostQueue = NULL;
 

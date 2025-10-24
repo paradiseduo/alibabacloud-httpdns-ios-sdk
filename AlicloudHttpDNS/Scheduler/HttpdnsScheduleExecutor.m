@@ -15,13 +15,10 @@
 #import "HttpdnsHostObject.h"
 #import "HttpdnsReachability.h"
 #import "HttpdnsPublicConstant.h"
-#import "HttpdnsInternalConstant.h"
+#import "HttpdnsNWHTTPClient.h"
 
-
-static NSURLSession *_scheduleCenterSession = nil;
-
-@interface HttpdnsScheduleExecutor()<NSURLSessionTaskDelegate, NSURLSessionDataDelegate>
-
+@interface HttpdnsScheduleExecutor ()
+@property (nonatomic, strong) HttpdnsNWHTTPClient *httpClient;
 @end
 
 @implementation HttpdnsScheduleExecutor {
@@ -33,14 +30,10 @@ static NSURLSession *_scheduleCenterSession = nil;
     if (!(self = [super init])) {
         return nil;
     }
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
-        _scheduleCenterSession = [NSURLSession sessionWithConfiguration:configuration delegate:self delegateQueue:nil];
-    });
     // 兼容旧路径：使用全局单例读取，但多账号场景下建议使用新init接口
     _accountId = [HttpDnsService sharedInstance].accountID;
     _timeoutInterval = [HttpDnsService sharedInstance].timeoutInterval;
+    _httpClient = [HttpdnsNWHTTPClient new];
     return self;
 }
 
@@ -82,109 +75,57 @@ static NSURLSession *_scheduleCenterSession = nil;
 - (NSDictionary *)fetchRegionConfigFromServer:(NSString *)updateHost error:(NSError **)pError {
     NSString *fullUrlStr = [self constructRequestURLWithUpdateHost:updateHost];
     HttpdnsLogDebug("ScRequest URL: %@", fullUrlStr);
-    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[[NSURL alloc] initWithString:fullUrlStr]
-                                                              cachePolicy:NSURLRequestReloadIgnoringLocalCacheData
-                                                          timeoutInterval:_timeoutInterval];
+    NSTimeInterval timeout = _timeoutInterval > 0 ? _timeoutInterval : HTTPDNS_DEFAULT_REQUEST_TIMEOUT_INTERVAL;
+    NSString *userAgent = [HttpdnsUtil generateUserAgent];
 
-    [request addValue:[HttpdnsUtil generateUserAgent] forHTTPHeaderField:@"User-Agent"];
-
-    __block NSDictionary * result = nil;
-    __block NSError * errorStrong = nil;
-
-    dispatch_semaphore_t _sem = dispatch_semaphore_create(0);
-
-    NSURLSessionTask *stTask = [_scheduleCenterSession dataTaskWithRequest:request completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
-        if (error) {
-            HttpdnsLogDebug("ScRequest Network error: %@", error);
-            errorStrong = error;
-            dispatch_semaphore_signal(_sem);
-            return;
+    NSError *requestError = nil;
+    HttpdnsNWHTTPClientResponse *response = [self.httpClient performRequestWithURLString:fullUrlStr
+                                                                               userAgent:userAgent
+                                                                                 timeout:timeout
+                                                                                   error:&requestError];
+    if (!response) {
+        if (pError) {
+            *pError = requestError;
+            HttpdnsLogDebug("ScRequest failed with url: %@, error: %@", fullUrlStr, requestError);
         }
+        return nil;
+    }
 
-        NSInteger statusCode = [(NSHTTPURLResponse *) response statusCode];
-
-        id jsonValue = [NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&errorStrong];
-
-        if (statusCode != 200) {
-            if (errorStrong) {
-                NSDictionary *dict = [[NSDictionary alloc] initWithObjectsAndKeys:
-                                      @"Response code not 200, and parse response message error", @"ErrorMessage",
-                                      [NSString stringWithFormat:@"%ld", (long)statusCode], @"ResponseCode", nil];
-                errorStrong = [NSError errorWithDomain:ALICLOUD_HTTPDNS_ERROR_DOMAIN code:ALICLOUD_HTTPDNS_HTTPS_NO_DATA_ERROR_CODE userInfo:dict];
-            } else {
-                NSString *errCode = @"Not200Response";
-                errCode = [result objectForKey:@"code"];
-                NSDictionary *dict = nil;
-                if ([HttpdnsUtil isNotEmptyString:errCode]) {
-                    dict = [[NSDictionary alloc] initWithObjectsAndKeys:
-                            errCode, ALICLOUD_HTTPDNS_ERROR_MESSAGE_KEY, nil];
-                }
-                errorStrong = [NSError errorWithDomain:ALICLOUD_HTTPDNS_ERROR_DOMAIN code:ALICLOUD_HTTPDNS_HTTPS_COMMON_ERROR_CODE userInfo:dict];
-            }
-
-            dispatch_semaphore_signal(_sem);
-            return;
+    if (response.statusCode != 200) {
+        NSDictionary *dict = @{@"ResponseCode": [NSString stringWithFormat:@"%ld", (long)response.statusCode]};
+        if (pError) {
+            *pError = [NSError errorWithDomain:ALICLOUD_HTTPDNS_ERROR_DOMAIN
+                                          code:ALICLOUD_HTTPDNS_HTTPS_NO_DATA_ERROR_CODE
+                                      userInfo:dict];
         }
+        return nil;
+    }
 
-        result = [HttpdnsUtil getValidDictionaryFromJson:jsonValue];
+    NSError *jsonError = nil;
+    id jsonValue = [NSJSONSerialization JSONObjectWithData:response.body options:kNilOptions error:&jsonError];
+    if (jsonError) {
+        if (pError) {
+            *pError = jsonError;
+            HttpdnsLogDebug("ScRequest JSON parse error, url: %@, error: %@", fullUrlStr, jsonError);
+        }
+        return nil;
+    }
+
+    NSDictionary *result = [HttpdnsUtil getValidDictionaryFromJson:jsonValue];
+    if (result) {
         HttpdnsLogDebug("ScRequest get response: %@", result);
-        dispatch_semaphore_signal(_sem);
-    }];
-
-    [stTask resume];
-    dispatch_semaphore_wait(_sem, DISPATCH_TIME_FOREVER);
-
-    if (!errorStrong) {
         return result;
     }
 
+    if (pError) {
+        *pError = [NSError errorWithDomain:ALICLOUD_HTTPDNS_ERROR_DOMAIN
+                                      code:ALICLOUD_HTTP_PARSE_JSON_FAILED
+                                  userInfo:@{NSLocalizedDescriptionKey: @"Failed to parse JSON response"}];
+    }
     if (pError != NULL) {
-        *pError = errorStrong;
-        HttpdnsLogDebug("ScRequest failed with scAddrURLString: %@, code: %ld, desc: %@", fullUrlStr, errorStrong.code, errorStrong.description);
+        HttpdnsLogDebug("ScRequest failed with url: %@, response body invalid", fullUrlStr);
     }
     return nil;
-}
-
-
-#pragma mark - NSURLSessionTaskDelegate
-
-- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition, NSURLCredential *_Nullable))completionHandler {
-    if (!challenge) {
-        return;
-    }
-    NSURLSessionAuthChallengeDisposition disposition = NSURLSessionAuthChallengePerformDefaultHandling;
-    NSURLCredential *credential = nil;
-    NSString *host = ALICLOUD_HTTPDNS_VALID_SERVER_CERTIFICATE_IP;
-    if ([challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodServerTrust]) {
-        if ([self evaluateServerTrust:challenge.protectionSpace.serverTrust forDomain:host]) {
-            disposition = NSURLSessionAuthChallengeUseCredential;
-            credential = [NSURLCredential credentialForTrust:challenge.protectionSpace.serverTrust];
-        } else {
-            disposition = NSURLSessionAuthChallengePerformDefaultHandling;
-        }
-    } else {
-        disposition = NSURLSessionAuthChallengePerformDefaultHandling;
-    }
-    completionHandler(disposition, credential);
-}
-
-- (BOOL)evaluateServerTrust:(SecTrustRef)serverTrust
-                  forDomain:(NSString *)domain {
-    NSMutableArray *policies = [NSMutableArray array];
-    if (domain) {
-        [policies addObject:(__bridge_transfer id) SecPolicyCreateSSL(true, (__bridge CFStringRef) domain)];
-    } else {
-        [policies addObject:(__bridge_transfer id) SecPolicyCreateBasicX509()];
-    }
-    SecTrustSetPolicies(serverTrust, (__bridge CFArrayRef) policies);
-    SecTrustResultType result;
-    SecTrustEvaluate(serverTrust, &result);
-    if (result == kSecTrustResultRecoverableTrustFailure) {
-        CFDataRef errDataRef = SecTrustCopyExceptions(serverTrust);
-        SecTrustSetExceptions(serverTrust, errDataRef);
-        SecTrustEvaluate(serverTrust, &result);
-    }
-    return (result == kSecTrustResultUnspecified || result == kSecTrustResultProceed);
 }
 
 @end
