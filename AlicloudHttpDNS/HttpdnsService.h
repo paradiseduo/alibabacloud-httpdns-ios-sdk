@@ -19,10 +19,15 @@
 
 #import <Foundation/Foundation.h>
 // 头文件包含需使用相对目录，确保通过 CocoaPods 安装后能被模块化编译找到
-#import "Model/HttpdnsRequest.h"
-#import "Model/HttpdnsResult.h"
-#import "HttpdnsDegradationDelegate.h"
-#import "Log/HttpdnsLoggerProtocol.h"
+// #import "HttpdnsRequest.h"
+// #import "HttpdnsResult.h"
+// #import "HttpdnsDegradationDelegate.h"
+// #import "HttpdnsLoggerProtocol.h"
+
+#import <AlicloudHTTPDNS/HttpdnsRequest.h>
+#import <AlicloudHTTPDNS/HttpDnsResult.h>
+#import <AlicloudHTTPDNS/HttpdnsLoggerProtocol.h>
+#import <AlicloudHTTPDNS/HttpdnsDegradationDelegate.h>
 
 #define ALICLOUD_HTTPDNS_DEPRECATED(explain) __attribute__((deprecated(explain)))
 

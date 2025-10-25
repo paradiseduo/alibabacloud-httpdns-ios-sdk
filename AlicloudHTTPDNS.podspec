@@ -14,7 +14,7 @@ Pod::Spec.new do |s|
   # 注意：发布到 Specs 仓库前，请将 git 地址指向正式仓库并按版本打 tag
   s.source       = { :git => "https://github.com/aliyun/alibabacloud-httpdns-ios-sdk", :tag => s.version.to_s }
 
-  s.platform     = :ios, "10.0"
+  s.platform     = :ios, "12.0"
   s.requires_arc = true
 
   # 以源码方式集成，仅收敛 SDK 源码目录
@@ -35,9 +35,6 @@ Pod::Spec.new do |s|
     "AlicloudHttpDNS/Config/HttpdnsPublicConstant.h",
     "AlicloudHttpDNS/IpStack/HttpdnsIpStackDetector.h"
   ]
-
-  # 头文件映射到 SDK 根目录，保证 umbrella 头中的相对包含能找到同级公开头
-  s.header_mappings_dir = "AlicloudHttpDNS"
 
   # 系统库与框架
   s.frameworks = ["CoreTelephony", "SystemConfiguration"]
