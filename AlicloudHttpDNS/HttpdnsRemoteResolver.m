@@ -28,7 +28,6 @@
 #import "HttpdnsService_Internal.h"
 #import "HttpdnsReachability.h"
 #import "HttpdnsRequestManager.h"
-#import "HttpdnsCFHttpWrapper.h"
 #import "HttpdnsIpStackDetector.h"
 #import "HttpdnsNWHTTPClient.h"
 #import <stdint.h>
@@ -48,7 +47,6 @@ static dispatch_queue_t _streamOperateSyncQueue = 0;
 
 @implementation HttpdnsRemoteResolver {
     NSMutableData *_resultData;
-    dispatch_semaphore_t _sem;
     NSInputStream *_inputStream;
     BOOL _responseResolved;
     BOOL _compeleted;
@@ -67,7 +65,6 @@ static dispatch_queue_t _streamOperateSyncQueue = 0;
 
 - (instancetype)init {
     if (self = [super init]) {
-        _sem = dispatch_semaphore_create(0);
         _resultData = [NSMutableData data];
         _httpJSONDict = nil;
         self.networkError = nil;
@@ -641,98 +638,51 @@ static dispatch_queue_t _streamOperateSyncQueue = 0;
         return nil;
     }
     HttpDnsService *httpdnsService = self.service;
-    if (httpdnsService.enableHttpsRequest || httpdnsService.allowedArbitraryLoadsInATS) {
-        NSString *fullUrlStr = httpdnsService.enableHttpsRequest
-            ? [NSString stringWithFormat:@"https://%@", urlStr]
-            : [NSString stringWithFormat:@"http://%@", urlStr];
+    NSString *scheme = httpdnsService.enableHttpsRequest ? @"https" : @"http";
+    NSString *fullUrlStr = [NSString stringWithFormat:@"%@://%@", scheme, urlStr];
 
-        NSTimeInterval timeout = httpdnsService.timeoutInterval > 0 ? httpdnsService.timeoutInterval : 10.0;
-        NSString *userAgent = [HttpdnsUtil generateUserAgent];
-        HttpdnsNWHTTPClientResponse *httpResponse = [self.httpClient performRequestWithURLString:fullUrlStr
-                                                                                        userAgent:userAgent
-                                                                                          timeout:timeout
-                                                                                            error:error];
-        if (!httpResponse) {
-            return nil;
-        }
-
-        if (httpResponse.statusCode != 200) {
-            if (error) {
-                NSString *errorMessage = [NSString stringWithFormat:@"Unsupported http status code: %ld", (long)httpResponse.statusCode];
-                *error = [NSError errorWithDomain:ALICLOUD_HTTPDNS_ERROR_DOMAIN
-                                             code:ALICLOUD_HTTP_UNSUPPORTED_STATUS_CODE
-                                         userInfo:@{NSLocalizedDescriptionKey: errorMessage}];
-            }
-            return nil;
-        }
-
-        NSError *jsonError = nil;
-        id jsonValue = [NSJSONSerialization JSONObjectWithData:httpResponse.body options:kNilOptions error:&jsonError];
-        if (jsonError) {
-            if (error) {
-                *error = jsonError;
-            }
-            return nil;
-        }
-
-        NSDictionary *json = [HttpdnsUtil getValidDictionaryFromJson:jsonValue];
-        if (!json) {
-            if (error) {
-                *error = [NSError errorWithDomain:ALICLOUD_HTTPDNS_ERROR_DOMAIN
-                                             code:ALICLOUD_HTTP_PARSE_JSON_FAILED
-                                         userInfo:@{NSLocalizedDescriptionKey: @"Failed to parse JSON response"}];
-            }
-            return nil;
-        }
-
-        return [self parseHttpdnsResponse:json withQueryIpType:queryIpType];
-    } else {
-        // 为了走HTTP时不强依赖用户的ATS配置，这里走使用CFHTTP实现的网络请求方式
-        NSString *fullUrlStr = [NSString stringWithFormat:@"http://%@", urlStr];
-        return [self sendCFHTTPRequest:fullUrlStr error:error queryIpType:queryIpType];
-    }
-}
-
-- (NSArray<HttpdnsHostObject *> *)sendCFHTTPRequest:(NSString *)urlStr error:(NSError **)pError queryIpType:(HttpdnsQueryIPType)queryIpType {
-    HttpdnsLogDebug("Send CFHTTP request URL: %@", urlStr);
-    NSURL *url = [NSURL URLWithString:urlStr];
-    HttpDnsService *service = self.service ?: [HttpDnsService sharedInstance];
-
-    __block NSDictionary *json = nil;
-    __block NSError *blockError = nil;
-    __weak typeof(self) weakSelf = self;
-
-    [[HttpdnsCFHttpWrapper new] sendHTTPRequestWithURL:url
-                                      timeoutInterval:service.timeoutInterval
-                                           completion:^(NSData * _Nullable data, NSError * _Nullable error) {
-        __strong typeof(weakSelf) strongSelf = weakSelf;
-        if (error) {
-            HttpdnsLogDebug("CFHTTP request network error, urlStr: %@, error: %@", urlStr, error);
-            blockError = error;
-        } else {
-            id jsonValue = [NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&blockError];
-            if (!blockError) {
-                json = [HttpdnsUtil getValidDictionaryFromJson:jsonValue];
-            }
-        }
-
-        dispatch_semaphore_signal(strongSelf->_sem);
-    }];
-
-    dispatch_semaphore_wait(_sem, DISPATCH_TIME_FOREVER);
-
-    if (blockError && pError) {
-        *pError = blockError;
+    NSTimeInterval timeout = httpdnsService.timeoutInterval > 0 ? httpdnsService.timeoutInterval : 10.0;
+    NSString *userAgent = [HttpdnsUtil generateUserAgent];
+    HttpdnsNWHTTPClientResponse *httpResponse = [self.httpClient performRequestWithURLString:fullUrlStr
+                                                                                    userAgent:userAgent
+                                                                                      timeout:timeout
+                                                                                        error:error];
+    if (!httpResponse) {
         return nil;
     }
 
-    if (!json && pError) {
-        *pError = [NSError errorWithDomain:ALICLOUD_HTTPDNS_ERROR_DOMAIN code:ALICLOUD_HTTP_PARSE_JSON_FAILED userInfo:@{NSLocalizedDescriptionKey: @"Failed to parse JSON response"}];
+    if (httpResponse.statusCode != 200) {
+        if (error) {
+            NSString *errorMessage = [NSString stringWithFormat:@"Unsupported http status code: %ld", (long)httpResponse.statusCode];
+            *error = [NSError errorWithDomain:ALICLOUD_HTTPDNS_ERROR_DOMAIN
+                                         code:ALICLOUD_HTTP_UNSUPPORTED_STATUS_CODE
+                                     userInfo:@{NSLocalizedDescriptionKey: errorMessage}];
+        }
+        return nil;
+    }
+
+    NSError *jsonError = nil;
+    id jsonValue = [NSJSONSerialization JSONObjectWithData:httpResponse.body options:kNilOptions error:&jsonError];
+    if (jsonError) {
+        if (error) {
+            *error = jsonError;
+        }
+        return nil;
+    }
+
+    NSDictionary *json = [HttpdnsUtil getValidDictionaryFromJson:jsonValue];
+    if (!json) {
+        if (error) {
+            *error = [NSError errorWithDomain:ALICLOUD_HTTPDNS_ERROR_DOMAIN
+                                         code:ALICLOUD_HTTP_PARSE_JSON_FAILED
+                                     userInfo:@{NSLocalizedDescriptionKey: @"Failed to parse JSON response"}];
+        }
         return nil;
     }
 
     return [self parseHttpdnsResponse:json withQueryIpType:queryIpType];
 }
+
 #pragma mark - Helper Functions
 // 将extra字段转换为NSString类型
 - (NSString *)convertExtraToString:(id)extra {
