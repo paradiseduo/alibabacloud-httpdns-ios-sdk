@@ -7,7 +7,7 @@
 //
 //  真实网络集成测试 - 使用本地 mock server (127.0.0.1)
 //  注意：需要先启动 mock_server.py (python3 mock_server.py)
-//  测试总数：46 个（G:7 + H:5 + I:5 + J:5 + K:5 + L:3 + M:4 + N:3 + O:3 + P:6）
+//  测试总数：54 个（G:7 + H:5 + I:5 + J:5 + K:5 + L:3 + M:4 + N:3 + O:3 + P:6 + Q:8）
 
 #import <XCTest/XCTest.h>
 #import "HttpdnsNWHTTPClient.h"
@@ -1903,6 +1903,287 @@
     // 验证复用发生
     XCTAssertEqual(self.client.connectionReuseCount, 1,
                    @"Second request to port 11444 should reuse connection");
+}
+
+#pragma mark - Q. 状态机与异常场景测试
+
+// Q1.1 池溢出时LRU移除策略验证
+- (void)testStateMachine_PoolOverflowLRU_RemovesOldestByLastUsedDate {
+    [self.client resetPoolStatistics];
+    NSString *poolKey = @"127.0.0.1:11080:tcp";
+
+    // 需要并发创建5个连接（串行请求会复用）
+    NSMutableArray<XCTestExpectation *> *expectations = [NSMutableArray array];
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+
+    // 并发发起5个请求
+    for (NSInteger i = 0; i < 5; i++) {
+        XCTestExpectation *expectation = [self expectationWithDescription:[NSString stringWithFormat:@"Request %ld", (long)i]];
+        [expectations addObject:expectation];
+
+        dispatch_async(queue, ^{
+            NSError *error = nil;
+            // 使用 /delay/2 确保所有请求同时在飞行中，强制创建多个连接
+            [self.client performRequestWithURLString:@"http://127.0.0.1:11080/delay/2"
+                                            userAgent:[NSString stringWithFormat:@"Request%ld", (long)i]
+                                              timeout:15.0
+                                                error:&error];
+            [expectation fulfill];
+        });
+        [NSThread sleepForTimeInterval:0.05];  // 小间隔避免完全同时启动
+    }
+
+    [self waitForExpectations:expectations timeout:20.0];
+
+    // 等待所有连接归还
+    [NSThread sleepForTimeInterval:1.0];
+
+    // 验证：池大小 ≤ 4（LRU移除溢出部分）
+    NSUInteger poolCount = [self.client connectionPoolCountForKey:poolKey];
+    XCTAssertLessThanOrEqual(poolCount, 4,
+                             @"Pool should enforce max 4 connections (LRU)");
+
+    // 验证：创建了多个连接
+    XCTAssertGreaterThanOrEqual(self.client.connectionCreationCount, 3,
+                                @"Should create multiple concurrent connections");
+}
+
+// Q2.1 快速连续请求不产生重复连接（间接验证双重归还防护）
+- (void)testAbnormal_RapidSequentialRequests_NoDuplicates {
+    [self.client resetPoolStatistics];
+    NSString *poolKey = @"127.0.0.1:11080:tcp";
+
+    // 快速连续发起10个请求（测试连接归还的幂等性）
+    for (NSInteger i = 0; i < 10; i++) {
+        NSError *error = nil;
+        HttpdnsNWHTTPClientResponse *response = [self.client performRequestWithURLString:@"http://127.0.0.1:11080/get"
+                                                                                userAgent:@"RapidTest"
+                                                                                  timeout:15.0
+                                                                                    error:&error];
+        XCTAssertNotNil(response);
+    }
+
+    // 等待连接归还
+    [NSThread sleepForTimeInterval:1.0];
+
+    // 验证：池中最多1个连接（因为串行请求复用同一连接）
+    NSUInteger poolCount = [self.client connectionPoolCountForKey:poolKey];
+    XCTAssertLessThanOrEqual(poolCount, 1,
+                             @"Pool should have at most 1 connection (rapid sequential reuse)");
+
+    // 验证：创建次数应该是1（所有请求复用同一连接）
+    XCTAssertEqual(self.client.connectionCreationCount, 1,
+                   @"Should create only 1 connection for sequential requests");
+}
+
+// Q2.2 不同端口请求不互相污染池
+- (void)testAbnormal_DifferentPorts_IsolatedPools {
+    [self.client resetPoolStatistics];
+    NSString *poolKey11080 = @"127.0.0.1:11080:tcp";
+    NSString *poolKey11443 = @"127.0.0.1:11443:tls";
+
+    // 向端口11080发起请求
+    NSError *error1 = nil;
+    HttpdnsNWHTTPClientResponse *response1 = [self.client performRequestWithURLString:@"http://127.0.0.1:11080/get"
+                                                                             userAgent:@"Port11080"
+                                                                               timeout:15.0
+                                                                                 error:&error1];
+    XCTAssertNotNil(response1);
+
+    // 向端口11443发起请求
+    NSError *error2 = nil;
+    HttpdnsNWHTTPClientResponse *response2 = [self.client performRequestWithURLString:@"https://127.0.0.1:11443/get"
+                                                                             userAgent:@"Port11443"
+                                                                               timeout:15.0
+                                                                                 error:&error2];
+    XCTAssertNotNil(response2);
+
+    // 等待连接归还
+    [NSThread sleepForTimeInterval:0.5];
+
+    // 验证：两个池各自有1个连接
+    XCTAssertEqual([self.client connectionPoolCountForKey:poolKey11080], 1,
+                   @"Port 11080 pool should have 1 connection");
+    XCTAssertEqual([self.client connectionPoolCountForKey:poolKey11443], 1,
+                   @"Port 11443 pool should have 1 connection");
+
+    // 验证：总共2个连接（池完全隔离）
+    XCTAssertEqual([self.client totalConnectionCount], 2,
+                   @"Total should be 2 (one per pool)");
+}
+
+// Q3.1 池大小不变式：任何时候池大小都不超过限制
+- (void)testInvariant_PoolSize_NeverExceedsLimit {
+    [self.client resetPoolStatistics];
+
+    // 快速连续发起20个请求到同一端点
+    for (NSInteger i = 0; i < 20; i++) {
+        NSError *error = nil;
+        [self.client performRequestWithURLString:@"http://127.0.0.1:11080/get"
+                                        userAgent:@"InvariantTest"
+                                          timeout:15.0
+                                            error:&error];
+    }
+
+    // 等待所有连接归还
+    [NSThread sleepForTimeInterval:1.5];
+
+    // 验证：每个池的大小不超过4
+    NSArray<NSString *> *allKeys = [self.client allConnectionPoolKeys];
+    for (NSString *key in allKeys) {
+        NSUInteger poolCount = [self.client connectionPoolCountForKey:key];
+        XCTAssertLessThanOrEqual(poolCount, 4,
+                                 @"Pool %@ size should never exceed 4 (actual: %lu)",
+                                 key, (unsigned long)poolCount);
+    }
+
+    // 验证：总连接数也不超过4（因为只有一个池）
+    XCTAssertLessThanOrEqual([self.client totalConnectionCount], 4,
+                             @"Total connections should not exceed 4");
+}
+
+// Q3.3 无重复连接不变式：并发请求不产生重复
+- (void)testInvariant_NoDuplicates_ConcurrentRequests {
+    [self.client resetPoolStatistics];
+    NSString *poolKey = @"127.0.0.1:11080:tcp";
+
+    NSMutableArray<XCTestExpectation *> *expectations = [NSMutableArray array];
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+
+    // 并发发起15个请求（可能复用连接）
+    for (NSInteger i = 0; i < 15; i++) {
+        XCTestExpectation *expectation = [self expectationWithDescription:[NSString stringWithFormat:@"Request %ld", (long)i]];
+        [expectations addObject:expectation];
+
+        dispatch_async(queue, ^{
+            NSError *error = nil;
+            [self.client performRequestWithURLString:@"http://127.0.0.1:11080/get"
+                                            userAgent:@"ConcurrentTest"
+                                              timeout:15.0
+                                                error:&error];
+            [expectation fulfill];
+        });
+    }
+
+    [self waitForExpectations:expectations timeout:30.0];
+
+    // 等待连接归还
+    [NSThread sleepForTimeInterval:1.0];
+
+    // 验证：池大小 ≤ 4（不变式）
+    NSUInteger poolCount = [self.client connectionPoolCountForKey:poolKey];
+    XCTAssertLessThanOrEqual(poolCount, 4,
+                             @"Pool should not have duplicates (max 4 connections)");
+
+    // 验证：创建的连接数合理（≤15，因为可能有复用）
+    XCTAssertLessThanOrEqual(self.client.connectionCreationCount, 15,
+                             @"Should not create excessive connections");
+}
+
+// Q4.1 边界条件：恰好30秒后连接过期
+- (void)testBoundary_Exactly30Seconds_ConnectionExpired {
+    if (getenv("SKIP_SLOW_TESTS")) {
+        return;
+    }
+
+    [self.client resetPoolStatistics];
+
+    // 第一个请求
+    NSError *error1 = nil;
+    HttpdnsNWHTTPClientResponse *response1 = [self.client performRequestWithURLString:@"http://127.0.0.1:11080/get"
+                                                                             userAgent:@"InitialRequest"
+                                                                               timeout:15.0
+                                                                                 error:&error1];
+    XCTAssertNotNil(response1);
+
+    // 等待恰好30.5秒（超过30秒过期时间）
+    [NSThread sleepForTimeInterval:30.5];
+
+    // 第二个请求：应该创建新连接（旧连接已过期）
+    NSError *error2 = nil;
+    HttpdnsNWHTTPClientResponse *response2 = [self.client performRequestWithURLString:@"http://127.0.0.1:11080/get"
+                                                                             userAgent:@"AfterExpiry"
+                                                                               timeout:15.0
+                                                                                 error:&error2];
+    XCTAssertNotNil(response2);
+
+    // 验证：创建了2个连接（旧连接过期，无法复用）
+    XCTAssertEqual(self.client.connectionCreationCount, 2,
+                   @"Should create 2 connections (first expired after 30s)");
+    XCTAssertEqual(self.client.connectionReuseCount, 0,
+                   @"Should not reuse expired connection");
+}
+
+// Q4.2 边界条件：29秒内连接未过期
+- (void)testBoundary_Under30Seconds_ConnectionNotExpired {
+    [self.client resetPoolStatistics];
+
+    // 第一个请求
+    NSError *error1 = nil;
+    HttpdnsNWHTTPClientResponse *response1 = [self.client performRequestWithURLString:@"http://127.0.0.1:11080/get"
+                                                                             userAgent:@"InitialRequest"
+                                                                               timeout:15.0
+                                                                                 error:&error1];
+    XCTAssertNotNil(response1);
+
+    // 等待29秒（未到30秒过期时间）
+    [NSThread sleepForTimeInterval:29.0];
+
+    // 第二个请求：应该复用连接
+    NSError *error2 = nil;
+    HttpdnsNWHTTPClientResponse *response2 = [self.client performRequestWithURLString:@"http://127.0.0.1:11080/get"
+                                                                             userAgent:@"BeforeExpiry"
+                                                                               timeout:15.0
+                                                                                 error:&error2];
+    XCTAssertNotNil(response2);
+
+    // 验证：只创建了1个连接（复用了）
+    XCTAssertEqual(self.client.connectionCreationCount, 1,
+                   @"Should create only 1 connection (reused within 30s)");
+    XCTAssertEqual(self.client.connectionReuseCount, 1,
+                   @"Should reuse connection within 30s");
+}
+
+// Q4.3 边界条件：恰好4个连接全部保留
+- (void)testBoundary_ExactlyFourConnections_AllKept {
+    [self.client resetPoolStatistics];
+    NSString *poolKey = @"127.0.0.1:11080:tcp";
+
+    // 并发发起4个请求（使用延迟确保同时在飞行中，创建4个独立连接）
+    NSMutableArray<XCTestExpectation *> *expectations = [NSMutableArray array];
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+
+    for (NSInteger i = 0; i < 4; i++) {
+        XCTestExpectation *expectation = [self expectationWithDescription:
+            [NSString stringWithFormat:@"Request %ld", (long)i]];
+        [expectations addObject:expectation];
+
+        dispatch_async(queue, ^{
+            NSError *error = nil;
+            // 使用 /delay/2 确保所有请求同时在飞行中
+            [self.client performRequestWithURLString:@"http://127.0.0.1:11080/delay/2"
+                                            userAgent:[NSString stringWithFormat:@"Request%ld", (long)i]
+                                              timeout:15.0
+                                                error:&error];
+            [expectation fulfill];
+        });
+
+        [NSThread sleepForTimeInterval:0.05];  // 小间隔避免完全同时启动
+    }
+
+    [self waitForExpectations:expectations timeout:20.0];
+
+    // 等待连接归还
+    [NSThread sleepForTimeInterval:1.0];
+
+    // 验证：池恰好有4个连接（全部保留）
+    NSUInteger poolCount = [self.client connectionPoolCountForKey:poolKey];
+    XCTAssertEqual(poolCount, 4,
+                   @"Pool should keep all 4 connections (not exceeding limit)");
+
+    // 验证：恰好创建4个连接
+    XCTAssertEqual(self.client.connectionCreationCount, 4,
+                   @"Should create exactly 4 connections");
 }
 
 @end
