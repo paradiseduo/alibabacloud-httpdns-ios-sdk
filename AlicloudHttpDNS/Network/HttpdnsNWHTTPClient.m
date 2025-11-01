@@ -29,6 +29,12 @@ static const NSTimeInterval kHttpdnsNWHTTPClientDefaultTimeout = 10.0;
 @property (nonatomic, strong) NSMutableDictionary<NSString *, NSMutableArray<HttpdnsNWReusableConnection *> *> *connectionPool;
 @property (nonatomic, strong) dispatch_queue_t poolQueue;
 
+#if DEBUG
+// 测试专用统计计数器
+@property (atomic, assign) NSUInteger connectionCreationCount;
+@property (atomic, assign) NSUInteger connectionReuseCount;
+#endif
+
 - (NSString *)connectionPoolKeyForHost:(NSString *)host port:(NSString *)port useTLS:(BOOL)useTLS;
 - (HttpdnsNWReusableConnection *)dequeueConnectionForHost:(NSString *)host
                                                      port:(NSString *)port
@@ -211,6 +217,9 @@ static const NSTimeInterval kHttpdnsNWHTTPClientDefaultTimeout = 10.0;
     });
 
     if (connection) {
+#if DEBUG
+        self.connectionReuseCount++;
+#endif
         return connection;
     }
 
@@ -231,6 +240,10 @@ static const NSTimeInterval kHttpdnsNWHTTPClientDefaultTimeout = 10.0;
         [newConnection invalidate];
         return nil;
     }
+
+#if DEBUG
+    self.connectionCreationCount++;
+#endif
 
     newConnection.inUse = YES;
     newConnection.lastUsedDate = now;
@@ -760,3 +773,42 @@ static const NSTimeInterval kHttpdnsNWHTTPClientDefaultTimeout = 10.0;
 }
 
 @end
+
+#if DEBUG
+// 测试专用：连接池检查 API 实现
+@implementation HttpdnsNWHTTPClient (TestInspection)
+
+- (NSUInteger)connectionPoolCountForKey:(NSString *)key {
+    __block NSUInteger count = 0;
+    dispatch_sync(self.poolQueue, ^{
+        NSMutableArray<HttpdnsNWReusableConnection *> *pool = self.connectionPool[key];
+        count = pool ? pool.count : 0;
+    });
+    return count;
+}
+
+- (NSArray<NSString *> *)allConnectionPoolKeys {
+    __block NSArray<NSString *> *keys = nil;
+    dispatch_sync(self.poolQueue, ^{
+        keys = [self.connectionPool.allKeys copy];
+    });
+    return keys ?: @[];
+}
+
+- (NSUInteger)totalConnectionCount {
+    __block NSUInteger total = 0;
+    dispatch_sync(self.poolQueue, ^{
+        for (NSMutableArray *pool in self.connectionPool.allValues) {
+            total += pool.count;
+        }
+    });
+    return total;
+}
+
+- (void)resetPoolStatistics {
+    self.connectionCreationCount = 0;
+    self.connectionReuseCount = 0;
+}
+
+@end
+#endif

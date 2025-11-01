@@ -56,4 +56,29 @@ typedef NS_ENUM(NSInteger, HttpdnsHTTPChunkParseResult) {
 
 @end
 
+#if DEBUG
+// 测试专用：连接池检查 API
+@interface HttpdnsNWHTTPClient (TestInspection)
+
+// 获取指定 pool key 的连接数量
+- (NSUInteger)connectionPoolCountForKey:(NSString *)key;
+
+// 获取所有连接池 keys
+- (NSArray<NSString *> *)allConnectionPoolKeys;
+
+// 获取连接池总连接数
+- (NSUInteger)totalConnectionCount;
+
+// 连接创建计数（用于验证连接复用）
+@property (atomic, assign) NSUInteger connectionCreationCount;
+
+// 连接复用计数（用于验证连接复用）
+@property (atomic, assign) NSUInteger connectionReuseCount;
+
+// 重置统计计数器（每个测试开始前调用）
+- (void)resetPoolStatistics;
+
+@end
+#endif
+
 NS_ASSUME_NONNULL_END
