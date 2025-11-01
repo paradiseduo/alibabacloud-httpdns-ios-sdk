@@ -2,6 +2,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+@class HttpdnsNWReusableConnection;
+
 @interface HttpdnsNWHTTPClientResponse : NSObject
 
 @property (nonatomic, assign) NSInteger statusCode;
@@ -18,6 +20,21 @@ NS_ASSUME_NONNULL_BEGIN
                                                                 error:(NSError **)error;
 
 @end
+
+#if DEBUG
+@interface HttpdnsNWHTTPClient (TestInspection)
+
+@property (nonatomic, assign, readonly) NSUInteger connectionCreationCount;
+@property (nonatomic, assign, readonly) NSUInteger connectionReuseCount;
+
+- (NSUInteger)connectionPoolCountForKey:(NSString *)key;
+- (NSArray<NSString *> *)allConnectionPoolKeys;
+- (NSUInteger)totalConnectionCount;
+- (void)resetPoolStatistics;
+- (NSArray<HttpdnsNWReusableConnection *> *)connectionsInPoolForKey:(NSString *)key;
+
+@end
+#endif
 
 NS_ASSUME_NONNULL_END
 

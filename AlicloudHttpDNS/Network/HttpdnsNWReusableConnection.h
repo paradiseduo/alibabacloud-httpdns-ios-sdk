@@ -27,5 +27,21 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
+#if DEBUG
+// 测试专用：连接状态检查与操作
+@interface HttpdnsNWReusableConnection (DebugInspection)
+
+// 状态检查（这些属性已在主接口暴露，这里仅为文档明确）
+// @property lastUsedDate - 可读写
+// @property inUse - 可读写
+// @property invalidated - 只读
+
+// 测试辅助方法
+- (void)debugSetLastUsedDate:(nullable NSDate *)date;
+- (void)debugInvalidate;
+
+@end
+#endif
+
 NS_ASSUME_NONNULL_END
 

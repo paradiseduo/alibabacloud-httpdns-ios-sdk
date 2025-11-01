@@ -810,5 +810,15 @@ static const NSTimeInterval kHttpdnsNWHTTPClientDefaultTimeout = 10.0;
     self.connectionReuseCount = 0;
 }
 
+// 获取指定池中的所有连接（用于状态检查）
+- (NSArray<HttpdnsNWReusableConnection *> *)connectionsInPoolForKey:(NSString *)key {
+    __block NSArray<HttpdnsNWReusableConnection *> *connections = nil;
+    dispatch_sync(self.poolQueue, ^{
+        NSMutableArray<HttpdnsNWReusableConnection *> *pool = self.connectionPool[key];
+        connections = pool ? [pool copy] : @[];
+    });
+    return connections;
+}
+
 @end
 #endif

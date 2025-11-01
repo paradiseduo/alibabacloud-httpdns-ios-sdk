@@ -526,3 +526,18 @@
 
 @end
 
+#if DEBUG
+// 测试专用：连接状态操作实现
+@implementation HttpdnsNWReusableConnection (DebugInspection)
+
+- (void)debugSetLastUsedDate:(nullable NSDate *)date {
+    self.lastUsedDate = date;
+}
+
+- (void)debugInvalidate {
+    [self invalidate];
+}
+
+@end
+#endif
+
