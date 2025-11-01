@@ -66,7 +66,7 @@
     id mockRequestClass = OCMClassMock([HttpdnsScheduleExecutor class]);
     OCMStub([mockRequestClass new]).andReturn(mockRequest);
 
-    HttpdnsScheduleCenter *scheduleCenter = [HttpdnsScheduleCenter sharedInstance];
+    HttpdnsScheduleCenter *scheduleCenter = [[HttpdnsScheduleCenter alloc] initWithAccountId:100000];
 
     NSArray<NSString *> *updateServerHostList = [scheduleCenter currentUpdateServerV4HostList];
 

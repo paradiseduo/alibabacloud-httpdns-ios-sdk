@@ -12,6 +12,7 @@
 		2197CACB1BC7B3D400BDB65B /* HttpdnsRemoteResolver.m in Sources */ = {isa = PBXBuildFile; fileRef = 2197CAB91BC7B3D400BDB65B /* HttpdnsRemoteResolver.m */; };
 		2197CACD1BC7B3D400BDB65B /* HttpdnsRequestManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 2197CABB1BC7B3D400BDB65B /* HttpdnsRequestManager.m */; };
 		2197CAD11BC7B3D400BDB65B /* HttpdnsUtil.m in Sources */ = {isa = PBXBuildFile; fileRef = 2197CABF1BC7B3D400BDB65B /* HttpdnsUtil.m */; };
+		38E5518686E44C8C6B2E4DAD /* Pods_AlicloudHttpDNSTestDemo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C735B35937A5C5BCDE1B3DE7 /* Pods_AlicloudHttpDNSTestDemo.framework */; };
 		4A36B63821C9EE9C00B1D008 /* HttpdnsLoggerProtocol.h in Headers */ = {isa = PBXBuildFile; fileRef = 4A36B63721C9EDA500B1D008 /* HttpdnsLoggerProtocol.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		4AF4AB6C211439A800D712DF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 4AF4AB6B211439A800D712DF /* Assets.xcassets */; };
 		4AF4AB6F211439A800D712DF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4AF4AB6D211439A800D712DF /* LaunchScreen.storyboard */; };
@@ -19,7 +20,6 @@
 		4AF5AB861DCB332800206DD8 /* HttpdnsRemoteResolver.m in Sources */ = {isa = PBXBuildFile; fileRef = 2197CAB91BC7B3D400BDB65B /* HttpdnsRemoteResolver.m */; };
 		4AF5AB871DCB332800206DD8 /* HttpdnsRequestManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 2197CABB1BC7B3D400BDB65B /* HttpdnsRequestManager.m */; };
 		4AF5AB891DCB332800206DD8 /* HttpdnsUtil.m in Sources */ = {isa = PBXBuildFile; fileRef = 2197CABF1BC7B3D400BDB65B /* HttpdnsUtil.m */; };
-		64330DF23036CB0B92C3CC4B /* Pods_AlicloudHttpDNSTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A9A068858699E5B9DC2392F /* Pods_AlicloudHttpDNSTests.framework */; };
 		7EB5412D2BD5FBFB001DFF47 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 7EB5412B2BD5FBFB001DFF47 /* PrivacyInfo.xcprivacy */; };
 		94008EE52E9222D800C86EFB /* DemoConfig.plist in Resources */ = {isa = PBXBuildFile; fileRef = 94008EE42E9222D800C86EFB /* DemoConfig.plist */; };
 		940585142D85AC9C001FEB15 /* HttpdnsDB.h in Headers */ = {isa = PBXBuildFile; fileRef = 940585122D85AC9C001FEB15 /* HttpdnsDB.h */; };
@@ -115,6 +115,11 @@
 		94F3D0632EB4BDCB0039304A /* HttpdnsNWReusableConnection.h in Headers */ = {isa = PBXBuildFile; fileRef = 94F3D05E2EB4BDCB0039304A /* HttpdnsNWReusableConnection.h */; };
 		94F3D0642EB4BDCB0039304A /* HttpdnsNWHTTPClient_Internal.h in Headers */ = {isa = PBXBuildFile; fileRef = 94F3D05D2EB4BDCB0039304A /* HttpdnsNWHTTPClient_Internal.h */; };
 		94F3D0652EB4BDCB0039304A /* HttpdnsNWReusableConnection.m in Sources */ = {isa = PBXBuildFile; fileRef = 94F3D05F2EB4BDCB0039304A /* HttpdnsNWReusableConnection.m */; };
+		94F3D06C2EB525650039304A /* HttpdnsNWHTTPClientIntegrationTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 94F3D0662EB525650039304A /* HttpdnsNWHTTPClientIntegrationTests.m */; };
+		94F3D06D2EB525650039304A /* HttpdnsNWHTTPClientTestHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = 94F3D0682EB525650039304A /* HttpdnsNWHTTPClientTestHelper.m */; };
+		94F3D06E2EB525650039304A /* HttpdnsNWHTTPClientTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 94F3D0692EB525650039304A /* HttpdnsNWHTTPClientTests.m */; };
+		94F3D06F2EB525650039304A /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 94F3D06A2EB525650039304A /* README.md */; };
+		94F3D0702EB525650039304A /* HttpdnsNWHTTPClientTestHelper.h in Headers */ = {isa = PBXBuildFile; fileRef = 94F3D0672EB525650039304A /* HttpdnsNWHTTPClientTestHelper.h */; };
 		9A0903791EA07C0C007B6821 /* HttpdnsScheduleExecutor.m in Sources */ = {isa = PBXBuildFile; fileRef = 9A5D5E281E9CB4D400CAC3A6 /* HttpdnsScheduleExecutor.m */; };
 		9A4D181D1E8FAF9B001E45B4 /* HttpdnsScheduleCenter.h in Headers */ = {isa = PBXBuildFile; fileRef = 9A4D181B1E8FAF9B001E45B4 /* HttpdnsScheduleCenter.h */; };
 		9A4D181E1E8FAF9B001E45B4 /* HttpdnsScheduleCenter.m in Sources */ = {isa = PBXBuildFile; fileRef = 9A4D181C1E8FAF9B001E45B4 /* HttpdnsScheduleCenter.m */; };
@@ -131,17 +136,16 @@
 		9AA0FC711EB9AFB700E242DD /* HttpdnsHostRecord.m in Sources */ = {isa = PBXBuildFile; fileRef = 9AA0FC6F1EB9AFB700E242DD /* HttpdnsHostRecord.m */; };
 		9AF9A5FE1EC4CFCF0018063B /* HttpdnsHostRecord.m in Sources */ = {isa = PBXBuildFile; fileRef = 9AA0FC6F1EB9AFB700E242DD /* HttpdnsHostRecord.m */; };
 		9AF9A60E1EC4D2EA0018063B /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 9AF9A60D1EC4D2EA0018063B /* libsqlite3.tbd */; };
+		B5EA18ABF0EB32054A9C07FD /* Pods_AlicloudHttpDNSTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 15FD19FB9D27F0491A62B730 /* Pods_AlicloudHttpDNSTests.framework */; };
 		CB1E4EE82A8CBD1B00F01EAC /* HttpDnsLocker.m in Sources */ = {isa = PBXBuildFile; fileRef = CB1E4EE72A8CBD1B00F01EAC /* HttpDnsLocker.m */; };
 		D1F0A12345ABCDEFFEDCBA03 /* DemoLogViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D1F0A12345ABCDEFFEDCBA02 /* DemoLogViewController.m */; };
-		D3BA94A794A493B9E43D1B77 /* Pods_AlicloudHttpDNSTestDemo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8AF567B2AD6A7928BDCAFE43 /* Pods_AlicloudHttpDNSTestDemo.framework */; };
 		E7B6D6A9251E4820B3C7C9A7 /* DemoViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = E7B6D6A1251E4820B3C7C9A2 /* DemoViewController.m */; };
 		E7B6D6AC251E4820B3C7C9AA /* DemoResolveModel.m in Sources */ = {isa = PBXBuildFile; fileRef = E7B6D6A3251E4820B3C7C9A4 /* DemoResolveModel.m */; };
 		E7B6D6AF251E4820B3C7C9AD /* DemoConfigLoader.m in Sources */ = {isa = PBXBuildFile; fileRef = E7B6D6A5251E4820B3C7C9A6 /* DemoConfigLoader.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0339F0246BAD71762B21EBC5 /* Pods-AlicloudHttpDNSTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AlicloudHttpDNSTests.debug.xcconfig"; path = "Target Support Files/Pods-AlicloudHttpDNSTests/Pods-AlicloudHttpDNSTests.debug.xcconfig"; sourceTree = "<group>"; };
-		0DCA9EC4747896958663170A /* Pods-AlicloudHttpDNSTestDemo.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AlicloudHttpDNSTestDemo.debug.xcconfig"; path = "Target Support Files/Pods-AlicloudHttpDNSTestDemo/Pods-AlicloudHttpDNSTestDemo.debug.xcconfig"; sourceTree = "<group>"; };
+		15FD19FB9D27F0491A62B730 /* Pods_AlicloudHttpDNSTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_AlicloudHttpDNSTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		2197CA3C1BC79A4500BDB65B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2197CA481BC79A4500BDB65B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2197CAB11BC7B3D400BDB65B /* AlicloudHttpDNS.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AlicloudHttpDNS.h; sourceTree = "<group>"; };
@@ -154,8 +158,6 @@
 		2197CABB1BC7B3D400BDB65B /* HttpdnsRequestManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HttpdnsRequestManager.m; sourceTree = "<group>"; };
 		2197CABE1BC7B3D400BDB65B /* HttpdnsUtil.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HttpdnsUtil.h; sourceTree = "<group>"; };
 		2197CABF1BC7B3D400BDB65B /* HttpdnsUtil.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HttpdnsUtil.m; sourceTree = "<group>"; };
-		34A86F62905D79A647141706 /* Pods-AlicloudHttpDNSTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AlicloudHttpDNSTests.release.xcconfig"; path = "Target Support Files/Pods-AlicloudHttpDNSTests/Pods-AlicloudHttpDNSTests.release.xcconfig"; sourceTree = "<group>"; };
-		3D93079E11273A9938EA4BEA /* Pods-AlicloudHttpDNSTestDemo.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AlicloudHttpDNSTestDemo.release.xcconfig"; path = "Target Support Files/Pods-AlicloudHttpDNSTestDemo/Pods-AlicloudHttpDNSTestDemo.release.xcconfig"; sourceTree = "<group>"; };
 		4A36B63721C9EDA500B1D008 /* HttpdnsLoggerProtocol.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HttpdnsLoggerProtocol.h; sourceTree = "<group>"; };
 		4A36B63A21C9EFF100B1D008 /* HttpdnsLog_Internal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HttpdnsLog_Internal.h; sourceTree = "<group>"; };
 		4AF4AB62211439A600D712DF /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -166,9 +168,9 @@
 		4AF4AB71211439A800D712DF /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		4AF4AB95211439F900D712DF /* libresolv.9.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libresolv.9.tbd; path = usr/lib/libresolv.9.tbd; sourceTree = SDKROOT; };
 		4AF4AB9821143A3800D712DF /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
-		7A9A068858699E5B9DC2392F /* Pods_AlicloudHttpDNSTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_AlicloudHttpDNSTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		736ADE601256D763536B1414 /* Pods-AlicloudHttpDNSTestDemo.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AlicloudHttpDNSTestDemo.release.xcconfig"; path = "Target Support Files/Pods-AlicloudHttpDNSTestDemo/Pods-AlicloudHttpDNSTestDemo.release.xcconfig"; sourceTree = "<group>"; };
 		7EB5412B2BD5FBFB001DFF47 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		8AF567B2AD6A7928BDCAFE43 /* Pods_AlicloudHttpDNSTestDemo.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_AlicloudHttpDNSTestDemo.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		880B3002B636BE24B549C85C /* Pods-AlicloudHttpDNSTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AlicloudHttpDNSTests.debug.xcconfig"; path = "Target Support Files/Pods-AlicloudHttpDNSTests/Pods-AlicloudHttpDNSTests.debug.xcconfig"; sourceTree = "<group>"; };
 		94008EE42E9222D800C86EFB /* DemoConfig.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = DemoConfig.plist; sourceTree = "<group>"; };
 		940585122D85AC9C001FEB15 /* HttpdnsDB.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HttpdnsDB.h; sourceTree = "<group>"; };
 		940585132D85AC9C001FEB15 /* HttpdnsDB.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HttpdnsDB.m; sourceTree = "<group>"; };
@@ -216,6 +218,11 @@
 		94F3D05D2EB4BDCB0039304A /* HttpdnsNWHTTPClient_Internal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HttpdnsNWHTTPClient_Internal.h; sourceTree = "<group>"; };
 		94F3D05E2EB4BDCB0039304A /* HttpdnsNWReusableConnection.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HttpdnsNWReusableConnection.h; sourceTree = "<group>"; };
 		94F3D05F2EB4BDCB0039304A /* HttpdnsNWReusableConnection.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HttpdnsNWReusableConnection.m; sourceTree = "<group>"; };
+		94F3D0662EB525650039304A /* HttpdnsNWHTTPClientIntegrationTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HttpdnsNWHTTPClientIntegrationTests.m; sourceTree = "<group>"; };
+		94F3D0672EB525650039304A /* HttpdnsNWHTTPClientTestHelper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = HttpdnsNWHTTPClientTestHelper.h; sourceTree = "<group>"; };
+		94F3D0682EB525650039304A /* HttpdnsNWHTTPClientTestHelper.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HttpdnsNWHTTPClientTestHelper.m; sourceTree = "<group>"; };
+		94F3D0692EB525650039304A /* HttpdnsNWHTTPClientTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HttpdnsNWHTTPClientTests.m; sourceTree = "<group>"; };
+		94F3D06A2EB525650039304A /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		9A4D181B1E8FAF9B001E45B4 /* HttpdnsScheduleCenter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HttpdnsScheduleCenter.h; sourceTree = "<group>"; };
 		9A4D181C1E8FAF9B001E45B4 /* HttpdnsScheduleCenter.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HttpdnsScheduleCenter.m; sourceTree = "<group>"; };
 		9A5914761EA07EA700A7ED28 /* NetworkManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NetworkManager.h; sourceTree = "<group>"; };
@@ -231,6 +238,7 @@
 		9AA0FC6E1EB9AFB700E242DD /* HttpdnsHostRecord.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HttpdnsHostRecord.h; sourceTree = "<group>"; };
 		9AA0FC6F1EB9AFB700E242DD /* HttpdnsHostRecord.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = HttpdnsHostRecord.m; sourceTree = "<group>"; };
 		9AF9A60D1EC4D2EA0018063B /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
+		C735B35937A5C5BCDE1B3DE7 /* Pods_AlicloudHttpDNSTestDemo.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_AlicloudHttpDNSTestDemo.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		CB1E4EE32A8CA91800F01EAC /* AlicloudHttpDNS.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = AlicloudHttpDNS.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		CB1E4EE42A8CA91800F01EAC /* AlicloudHttpDNS.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AlicloudHttpDNS.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CB1E4EE52A8CA91800F01EAC /* AlicloudHttpDNSTestDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AlicloudHttpDNSTestDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -238,12 +246,14 @@
 		CB1E4EE72A8CBD1B00F01EAC /* HttpDnsLocker.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = HttpDnsLocker.m; sourceTree = "<group>"; };
 		D1F0A12345ABCDEFFEDCBA01 /* DemoLogViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DemoLogViewController.h; sourceTree = "<group>"; };
 		D1F0A12345ABCDEFFEDCBA02 /* DemoLogViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DemoLogViewController.m; sourceTree = "<group>"; };
+		DF6C39232D0C2F2330C76410 /* Pods-AlicloudHttpDNSTestDemo.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AlicloudHttpDNSTestDemo.debug.xcconfig"; path = "Target Support Files/Pods-AlicloudHttpDNSTestDemo/Pods-AlicloudHttpDNSTestDemo.debug.xcconfig"; sourceTree = "<group>"; };
 		E7B6D6A0251E4820B3C7C9A1 /* DemoViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DemoViewController.h; sourceTree = "<group>"; };
 		E7B6D6A1251E4820B3C7C9A2 /* DemoViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DemoViewController.m; sourceTree = "<group>"; };
 		E7B6D6A2251E4820B3C7C9A3 /* DemoResolveModel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DemoResolveModel.h; sourceTree = "<group>"; };
 		E7B6D6A3251E4820B3C7C9A4 /* DemoResolveModel.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DemoResolveModel.m; sourceTree = "<group>"; };
 		E7B6D6A4251E4820B3C7C9A5 /* DemoConfigLoader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DemoConfigLoader.h; sourceTree = "<group>"; };
 		E7B6D6A5251E4820B3C7C9A6 /* DemoConfigLoader.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DemoConfigLoader.m; sourceTree = "<group>"; };
+		FC445B4FBD1F2B33996BA0EF /* Pods-AlicloudHttpDNSTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-AlicloudHttpDNSTests.release.xcconfig"; path = "Target Support Files/Pods-AlicloudHttpDNSTests/Pods-AlicloudHttpDNSTests.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -260,7 +270,7 @@
 			files = (
 				9AF9A60E1EC4D2EA0018063B /* libsqlite3.tbd in Frameworks */,
 				945914121CEB5D9C00D95CF7 /* libresolv.tbd in Frameworks */,
-				64330DF23036CB0B92C3CC4B /* Pods_AlicloudHttpDNSTests.framework in Frameworks */,
+				B5EA18ABF0EB32054A9C07FD /* Pods_AlicloudHttpDNSTests.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -268,7 +278,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D3BA94A794A493B9E43D1B77 /* Pods_AlicloudHttpDNSTestDemo.framework in Frameworks */,
+				38E5518686E44C8C6B2E4DAD /* Pods_AlicloudHttpDNSTestDemo.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -325,6 +335,7 @@
 				947E5C1B2C02DB1D00123579 /* OutdatedTest */,
 				94C3695C2D83457F005ADDD7 /* IPDetector */,
 				940585182D85C009001FEB15 /* DB */,
+				94F3D06B2EB525650039304A /* Network */,
 				947E5C1A2C008E0000123579 /* HighLevelTest */,
 				2197CA481BC79A4500BDB65B /* Info.plist */,
 			);
@@ -372,8 +383,8 @@
 				4AF4AB9821143A3800D712DF /* libz.tbd */,
 				4AF4AB95211439F900D712DF /* libresolv.9.tbd */,
 				9AF9A60D1EC4D2EA0018063B /* libsqlite3.tbd */,
-				8AF567B2AD6A7928BDCAFE43 /* Pods_AlicloudHttpDNSTestDemo.framework */,
-				7A9A068858699E5B9DC2392F /* Pods_AlicloudHttpDNSTests.framework */,
+				C735B35937A5C5BCDE1B3DE7 /* Pods_AlicloudHttpDNSTestDemo.framework */,
+				15FD19FB9D27F0491A62B730 /* Pods_AlicloudHttpDNSTests.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -494,6 +505,18 @@
 			path = IPDetector;
 			sourceTree = "<group>";
 		};
+		94F3D06B2EB525650039304A /* Network */ = {
+			isa = PBXGroup;
+			children = (
+				94F3D0672EB525650039304A /* HttpdnsNWHTTPClientTestHelper.h */,
+				94F3D0682EB525650039304A /* HttpdnsNWHTTPClientTestHelper.m */,
+				94F3D0692EB525650039304A /* HttpdnsNWHTTPClientTests.m */,
+				94F3D0662EB525650039304A /* HttpdnsNWHTTPClientIntegrationTests.m */,
+				94F3D06A2EB525650039304A /* README.md */,
+			);
+			path = Network;
+			sourceTree = "<group>";
+		};
 		9AA0FC591EB9843A00E242DD /* Utils */ = {
 			isa = PBXGroup;
 			children = (
@@ -530,10 +553,10 @@
 		F9586D08E3A988B948DFF1AC /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				0DCA9EC4747896958663170A /* Pods-AlicloudHttpDNSTestDemo.debug.xcconfig */,
-				3D93079E11273A9938EA4BEA /* Pods-AlicloudHttpDNSTestDemo.release.xcconfig */,
-				0339F0246BAD71762B21EBC5 /* Pods-AlicloudHttpDNSTests.debug.xcconfig */,
-				34A86F62905D79A647141706 /* Pods-AlicloudHttpDNSTests.release.xcconfig */,
+				DF6C39232D0C2F2330C76410 /* Pods-AlicloudHttpDNSTestDemo.debug.xcconfig */,
+				736ADE601256D763536B1414 /* Pods-AlicloudHttpDNSTestDemo.release.xcconfig */,
+				880B3002B636BE24B549C85C /* Pods-AlicloudHttpDNSTests.debug.xcconfig */,
+				FC445B4FBD1F2B33996BA0EF /* Pods-AlicloudHttpDNSTests.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -607,6 +630,7 @@
 				940585212D86695C001FEB15 /* HttpdnsIpStackDetector.h in Headers */,
 				947E5BEB2C0075B100123579 /* HttpdnsRequest.h in Headers */,
 				940585142D85AC9C001FEB15 /* HttpdnsDB.h in Headers */,
+				94F3D0702EB525650039304A /* HttpdnsNWHTTPClientTestHelper.h in Headers */,
 				94A96AEC2EAC89C1005538BD /* HttpdnsNWHTTPClient.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -636,12 +660,12 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 2197CA4E1BC79A4500BDB65B /* Build configuration list for PBXNativeTarget "AlicloudHttpDNSTests" */;
 			buildPhases = (
-				2E88B4B9F511F3CF962BAA47 /* [CP] Check Pods Manifest.lock */,
+				CB08CC05A673E0217F2D1764 /* [CP] Check Pods Manifest.lock */,
 				947E5BE62C0075A100123579 /* Headers */,
 				2197CA3D1BC79A4500BDB65B /* Sources */,
 				2197CA3E1BC79A4500BDB65B /* Frameworks */,
 				2197CA3F1BC79A4500BDB65B /* Resources */,
-				9A03DE81D0545C7E7D8CFC20 /* [CP] Embed Pods Frameworks */,
+				454044FE1BB7084363A43B5A /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -656,11 +680,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 4AF4AB73211439A800D712DF /* Build configuration list for PBXNativeTarget "AlicloudHttpDNSTestDemo" */;
 			buildPhases = (
-				3E05AA28EA9A2A082E39F345 /* [CP] Check Pods Manifest.lock */,
+				41239A110EEBCD18330CB6A1 /* [CP] Check Pods Manifest.lock */,
 				4AF4AB5C211439A600D712DF /* Sources */,
 				4AF4AB5D211439A600D712DF /* Frameworks */,
 				4AF4AB5E211439A600D712DF /* Resources */,
-				F3BCBE4F907B2B911B26AC22 /* [CP] Embed Pods Frameworks */,
+				C0D8ED0FD919DFFA6EF96EB7 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -719,6 +743,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				94F3D06F2EB525650039304A /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -743,29 +768,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		2E88B4B9F511F3CF962BAA47 /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-AlicloudHttpDNSTests-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		3E05AA28EA9A2A082E39F345 /* [CP] Check Pods Manifest.lock */ = {
+		41239A110EEBCD18330CB6A1 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -787,7 +790,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		9A03DE81D0545C7E7D8CFC20 /* [CP] Embed Pods Frameworks */ = {
+		454044FE1BB7084363A43B5A /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -805,7 +808,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-AlicloudHttpDNSTests/Pods-AlicloudHttpDNSTests-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		F3BCBE4F907B2B911B26AC22 /* [CP] Embed Pods Frameworks */ = {
+		C0D8ED0FD919DFFA6EF96EB7 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -821,6 +824,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-AlicloudHttpDNSTestDemo/Pods-AlicloudHttpDNSTestDemo-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		CB08CC05A673E0217F2D1764 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-AlicloudHttpDNSTests-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -889,6 +914,9 @@
 				948CD0092C031EB000F9F075 /* MultithreadCorrectnessTest.m in Sources */,
 				947E5C192C00764C00123579 /* HttpDnsLocker.m in Sources */,
 				945BA3F82C203F7F0098FC52 /* ManuallyCleanCacheTest.m in Sources */,
+				94F3D06C2EB525650039304A /* HttpdnsNWHTTPClientIntegrationTests.m in Sources */,
+				94F3D06D2EB525650039304A /* HttpdnsNWHTTPClientTestHelper.m in Sources */,
+				94F3D06E2EB525650039304A /* HttpdnsNWHTTPClientTests.m in Sources */,
 				9406FDA32C198E310003CB6A /* CacheKeyFunctionTest.m in Sources */,
 				94C3F8AE2C05D23F00A4A9B8 /* ResolvingEffectiveHostTest.m in Sources */,
 				9A59147D1EA07EA700A7ED28 /* NetworkManager.m in Sources */,
@@ -1055,6 +1083,7 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_BITCODE = YES;
 				ENABLE_MODULE_VERIFIER = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = "DEBUG=1";
@@ -1094,6 +1123,7 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_BITCODE = YES;
 				ENABLE_MODULE_VERIFIER = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				GCC_GENERATE_TEST_COVERAGE_FILES = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = "$(inherited)";
@@ -1121,9 +1151,10 @@
 		};
 		2197CA4F1BC79A4500BDB65B /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 0339F0246BAD71762B21EBC5 /* Pods-AlicloudHttpDNSTests.debug.xcconfig */;
+			baseConfigurationReference = 880B3002B636BE24B549C85C /* Pods-AlicloudHttpDNSTests.debug.xcconfig */;
 			buildSettings = {
 				COMPILER_INDEX_STORE_ENABLE = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
@@ -1151,9 +1182,10 @@
 		};
 		2197CA501BC79A4500BDB65B /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 34A86F62905D79A647141706 /* Pods-AlicloudHttpDNSTests.release.xcconfig */;
+			baseConfigurationReference = FC445B4FBD1F2B33996BA0EF /* Pods-AlicloudHttpDNSTests.release.xcconfig */;
 			buildSettings = {
 				COMPILER_INDEX_STORE_ENABLE = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
@@ -1181,7 +1213,7 @@
 		};
 		4AF4AB74211439A800D712DF /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 0DCA9EC4747896958663170A /* Pods-AlicloudHttpDNSTestDemo.debug.xcconfig */;
+			baseConfigurationReference = DF6C39232D0C2F2330C76410 /* Pods-AlicloudHttpDNSTestDemo.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ANALYZER_NONNULL = YES;
@@ -1226,7 +1258,7 @@
 		};
 		4AF4AB75211439A800D712DF /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 3D93079E11273A9938EA4BEA /* Pods-AlicloudHttpDNSTestDemo.release.xcconfig */;
+			baseConfigurationReference = 736ADE601256D763536B1414 /* Pods-AlicloudHttpDNSTestDemo.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ANALYZER_NONNULL = YES;

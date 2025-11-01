@@ -496,9 +496,10 @@ static const NSTimeInterval kHttpdnsNWHTTPClientDefaultTimeout = 10.0;
 
         NSString *trimmed = [[sizeString componentsSeparatedByString:@";"] firstObject];
         trimmed = [trimmed stringByTrimmingCharactersInSet:trimSet];
+        const char *cStr = trimmed.UTF8String;
         char *endPtr = NULL;
-        unsigned long long chunkSize = strtoull(trimmed.UTF8String, &endPtr, 16);
-        if (endPtr == NULL || endPtr == trimmed.UTF8String) {
+        unsigned long long chunkSize = strtoull(cStr, &endPtr, 16);
+        if (endPtr == NULL || endPtr == cStr) {
             if (error) {
                 *error = [NSError errorWithDomain:ALICLOUD_HTTPDNS_ERROR_DOMAIN
                                              code:ALICLOUD_HTTP_PARSE_JSON_FAILED
@@ -665,7 +666,18 @@ static const NSTimeInterval kHttpdnsNWHTTPClientDefaultTimeout = 10.0;
         }
         NSString *trimmed = [[sizeString componentsSeparatedByString:@";"] firstObject];
         trimmed = [trimmed stringByTrimmingCharactersInSet:trimSet];
-        unsigned long chunkSize = strtoul(trimmed.UTF8String, NULL, 16);
+        const char *cStr = trimmed.UTF8String;
+        char *endPtr = NULL;
+        unsigned long chunkSize = strtoul(cStr, &endPtr, 16);
+        // 检查是否是无效的十六进制字符串
+        if (endPtr == cStr) {
+            if (error) {
+                *error = [NSError errorWithDomain:ALICLOUD_HTTPDNS_ERROR_DOMAIN
+                                             code:ALICLOUD_HTTP_PARSE_JSON_FAILED
+                                         userInfo:@{NSLocalizedDescriptionKey: @"Invalid chunk size format"}];
+            }
+            return nil;
+        }
         cursor = lineEnd + 2;
         if (chunkSize == 0) {
             if (cursor + 1 < length) {
@@ -698,6 +710,13 @@ static const NSTimeInterval kHttpdnsNWHTTPClientDefaultTimeout = 10.0;
 }
 
 - (BOOL)evaluateServerTrust:(SecTrustRef)serverTrust forDomain:(NSString *)domain {
+    // 测试专用：通过环境变量跳过 TLS 验证
+    // 仅在设置 HTTPDNS_SKIP_TLS_VERIFY 环境变量时生效（用于本地 mock server 测试）
+    if (getenv("HTTPDNS_SKIP_TLS_VERIFY") != NULL) {
+        return YES;
+    }
+
+    // 生产环境标准 TLS 验证流程
     NSMutableArray *policies = [NSMutableArray array];
     if (domain) {
         [policies addObject:(__bridge_transfer id) SecPolicyCreateSSL(true, (__bridge CFStringRef) domain)];
