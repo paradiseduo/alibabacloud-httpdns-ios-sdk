@@ -534,6 +534,10 @@
     self.lastUsedDate = date;
 }
 
+- (void)debugSetInUse:(BOOL)inUse {
+    self.inUse = inUse;
+}
+
 - (void)debugInvalidate {
     [self invalidate];
 }

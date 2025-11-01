@@ -5,8 +5,8 @@
 //  @author Created by Claude Code on 2025-11-01
 //  Copyright © 2025 alibaba-inc.com. All rights reserved.
 //
-//  连接池管理测试 - 包含多端口隔离 (K)、端口池耗尽 (L)、池验证 (O) 测试组
-//  测试总数：11 个（K:5 + L:3 + O:3）
+//  连接池管理测试 - 包含多端口隔离 (K)、端口池耗尽 (L)、池验证 (O)、空闲超时 (S) 测试组
+//  测试总数：16 个（K:5 + L:3 + O:3 + S:5）
 //
 
 #import "HttpdnsNWHTTPClientTestBase.h"
@@ -496,6 +496,279 @@
                    @"Should create only 1 connection for sequential requests");
     XCTAssertEqual(self.client.connectionReuseCount, 9,
                    @"Should reuse connection 9 times");
+}
+
+#pragma mark - S. 空闲超时详细测试
+
+// S.1 混合过期和有效连接 - 选择性清理
+- (void)testIdleTimeout_MixedExpiredValid_SelectivePruning {
+    [self.client resetPoolStatistics];
+    NSString *poolKey = @"127.0.0.1:11080:tcp";
+
+    // 创建第一个连接
+    NSError *error1 = nil;
+    HttpdnsNWHTTPClientResponse *response1 = [self.client performRequestWithURLString:@"http://127.0.0.1:11080/get"
+                                                                            userAgent:@"ConnectionA"
+                                                                              timeout:15.0
+                                                                                error:&error1];
+    XCTAssertNotNil(response1);
+    XCTAssertEqual(response1.statusCode, 200);
+
+    // 等待连接归还
+    [NSThread sleepForTimeInterval:0.5];
+
+    // 使用 DEBUG API 获取连接 A 并设置为过期（35 秒前）
+    NSArray<HttpdnsNWReusableConnection *> *connections = [self.client connectionsInPoolForKey:poolKey];
+    XCTAssertEqual(connections.count, 1, @"Should have 1 connection in pool");
+
+    HttpdnsNWReusableConnection *connectionA = connections.firstObject;
+    NSDate *expiredDate = [NSDate dateWithTimeIntervalSinceNow:-35.0];
+    [connectionA debugSetLastUsedDate:expiredDate];
+
+    // 创建第二个连接（通过并发请求）
+    NSError *error2 = nil;
+    HttpdnsNWHTTPClientResponse *response2 = [self.client performRequestWithURLString:@"http://127.0.0.1:11080/get"
+                                                                            userAgent:@"ConnectionB"
+                                                                              timeout:15.0
+                                                                                error:&error2];
+    XCTAssertNotNil(response2);
+
+    // 等待归还
+    [NSThread sleepForTimeInterval:0.5];
+
+    // 验证：应该有 1 个连接（connectionA 过期被移除，connectionB 留下）
+    connections = [self.client connectionsInPoolForKey:poolKey];
+    XCTAssertEqual(connections.count, 1,
+                   @"Should have only 1 connection (expired A removed, valid B kept)");
+
+    // 第三个请求应该复用 connectionB
+    [self.client resetPoolStatistics];
+    NSError *error3 = nil;
+    HttpdnsNWHTTPClientResponse *response3 = [self.client performRequestWithURLString:@"http://127.0.0.1:11080/get"
+                                                                            userAgent:@"ReuseB"
+                                                                              timeout:15.0
+                                                                                error:&error3];
+    XCTAssertNotNil(response3);
+
+    // 验证：复用了 connectionB（没有创建新连接）
+    XCTAssertEqual(self.client.connectionCreationCount, 0,
+                   @"Should not create new connection (reuse existing valid connection)");
+    XCTAssertEqual(self.client.connectionReuseCount, 1,
+                   @"Should reuse the valid connection B");
+}
+
+// S.2 In-Use 保护 - 使用中的连接不会过期
+- (void)testIdleTimeout_InUseProtection_ActiveConnectionNotPruned {
+    [self.client resetPoolStatistics];
+    NSString *poolKey = @"127.0.0.1:11080:tcp";
+
+    // 创建第一个连接
+    NSError *error1 = nil;
+    HttpdnsNWHTTPClientResponse *response1 = [self.client performRequestWithURLString:@"http://127.0.0.1:11080/get"
+                                                                            userAgent:@"Initial"
+                                                                              timeout:15.0
+                                                                                error:&error1];
+    XCTAssertNotNil(response1);
+
+    [NSThread sleepForTimeInterval:0.5];
+
+    // 借出连接并保持 inUse=YES
+    NSArray<HttpdnsNWReusableConnection *> *connections = [self.client connectionsInPoolForKey:poolKey];
+    XCTAssertEqual(connections.count, 1);
+
+    HttpdnsNWReusableConnection *conn = connections.firstObject;
+
+    // 手动设置为 60 秒前（远超 30 秒超时）
+    NSDate *veryOldDate = [NSDate dateWithTimeIntervalSinceNow:-60.0];
+    [conn debugSetLastUsedDate:veryOldDate];
+
+    // 将连接标记为使用中
+    [conn debugSetInUse:YES];
+
+    // 触发清理（通过发起另一个并发请求）
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+    __block NSInteger connectionsBefore = 0;
+    __block NSInteger connectionsAfter = 0;
+
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        connectionsBefore = [self.client totalConnectionCount];
+
+        // 发起请求（会触发 pruneConnectionPool）
+        NSError *error2 = nil;
+        [self.client performRequestWithURLString:@"http://127.0.0.1:11080/get"
+                                        userAgent:@"TriggerPrune"
+                                          timeout:15.0
+                                            error:&error2];
+
+        [NSThread sleepForTimeInterval:0.5];
+        connectionsAfter = [self.client totalConnectionCount];
+
+        dispatch_semaphore_signal(semaphore);
+    });
+
+    dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, 20 * NSEC_PER_SEC));
+
+    // 清理：重置 inUse 状态
+    [conn debugSetInUse:NO];
+
+    // 验证：inUse=YES 的连接不应该被清理
+    // connectionsBefore = 1 (旧连接), connectionsAfter = 2 (旧连接 + 新连接)
+    XCTAssertEqual(connectionsBefore, 1,
+                   @"Should have 1 connection before (in-use protected)");
+    XCTAssertEqual(connectionsAfter, 2,
+                   @"Should have 2 connections after (in-use connection NOT pruned, new connection added)");
+}
+
+// S.3 所有连接过期 - 批量清理
+- (void)testIdleTimeout_AllExpired_BulkPruning {
+    [self.client resetPoolStatistics];
+    NSString *poolKey = @"127.0.0.1:11080:tcp";
+
+    // 创建 4 个连接（填满池）
+    NSMutableArray<XCTestExpectation *> *expectations = [NSMutableArray array];
+    dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+
+    for (NSInteger i = 0; i < 4; i++) {
+        XCTestExpectation *expectation = [self expectationWithDescription:[NSString stringWithFormat:@"Request %ld", (long)i]];
+        [expectations addObject:expectation];
+
+        dispatch_async(queue, ^{
+            NSError *error = nil;
+            HttpdnsNWHTTPClientResponse *response = [self.client performRequestWithURLString:@"http://127.0.0.1:11080/get"
+                                                                                    userAgent:@"FillPool"
+                                                                                      timeout:15.0
+                                                                                        error:&error];
+            XCTAssertNotNil(response);
+            [expectation fulfill];
+        });
+    }
+
+    [self waitForExpectations:expectations timeout:30.0];
+
+    // 等待所有连接归还
+    [NSThread sleepForTimeInterval:1.0];
+
+    // 验证池已满
+    NSUInteger poolSizeBefore = [self.client connectionPoolCountForKey:poolKey];
+    XCTAssertGreaterThan(poolSizeBefore, 0, @"Pool should have connections");
+
+    // 将所有连接设置为过期（31 秒前）
+    NSArray<HttpdnsNWReusableConnection *> *connections = [self.client connectionsInPoolForKey:poolKey];
+    NSDate *expiredDate = [NSDate dateWithTimeIntervalSinceNow:-31.0];
+    for (HttpdnsNWReusableConnection *conn in connections) {
+        [conn debugSetLastUsedDate:expiredDate];
+    }
+
+    // 发起新请求（触发批量清理）
+    NSError *errorNew = nil;
+    HttpdnsNWHTTPClientResponse *responseNew = [self.client performRequestWithURLString:@"http://127.0.0.1:11080/get"
+                                                                               userAgent:@"AfterBulkExpiry"
+                                                                                 timeout:15.0
+                                                                                   error:&errorNew];
+    XCTAssertNotNil(responseNew, @"Request should succeed after bulk pruning");
+    XCTAssertEqual(responseNew.statusCode, 200);
+
+    // 等待归还
+    [NSThread sleepForTimeInterval:0.5];
+
+    // 验证：池中只有新连接（所有旧连接被清理）
+    NSUInteger poolSizeAfter = [self.client connectionPoolCountForKey:poolKey];
+    XCTAssertEqual(poolSizeAfter, 1,
+                   @"Pool should have only 1 connection (new one after bulk pruning)");
+}
+
+// S.4 过期后池状态验证
+- (void)testIdleTimeout_PoolStateAfterExpiry_DirectVerification {
+    [self.client resetPoolStatistics];
+    NSString *poolKey = @"127.0.0.1:11080:tcp";
+
+    // 创建连接
+    NSError *error1 = nil;
+    HttpdnsNWHTTPClientResponse *response1 = [self.client performRequestWithURLString:@"http://127.0.0.1:11080/get"
+                                                                            userAgent:@"CreateConnection"
+                                                                              timeout:15.0
+                                                                                error:&error1];
+    XCTAssertNotNil(response1);
+
+    [NSThread sleepForTimeInterval:0.5];
+
+    // 验证连接在池中
+    XCTAssertEqual([self.client connectionPoolCountForKey:poolKey], 1,
+                   @"Pool should have 1 connection");
+
+    // 设置连接为过期
+    NSArray<HttpdnsNWReusableConnection *> *connections = [self.client connectionsInPoolForKey:poolKey];
+    HttpdnsNWReusableConnection *conn = connections.firstObject;
+    [conn debugSetLastUsedDate:[NSDate dateWithTimeIntervalSinceNow:-31.0]];
+
+    // 发起请求（触发清理）
+    NSError *error2 = nil;
+    HttpdnsNWHTTPClientResponse *response2 = [self.client performRequestWithURLString:@"http://127.0.0.1:11080/get"
+                                                                            userAgent:@"TriggerPrune"
+                                                                              timeout:15.0
+                                                                                error:&error2];
+    XCTAssertNotNil(response2);
+
+    [NSThread sleepForTimeInterval:0.5];
+
+    // 直接验证池状态：过期连接已被移除，新连接已加入
+    NSUInteger poolSizeAfter = [self.client connectionPoolCountForKey:poolKey];
+    XCTAssertEqual(poolSizeAfter, 1,
+                   @"Pool should have 1 connection (expired removed, new added)");
+
+    // 验证统计：创建了新连接（旧连接过期不可复用）
+    XCTAssertGreaterThanOrEqual(self.client.connectionCreationCount, 1,
+                                @"Should have created at least 1 new connection");
+}
+
+// S.5 快速过期测试（无需等待）- 演示最佳实践
+- (void)testIdleTimeout_FastExpiry_NoWaiting {
+    [self.client resetPoolStatistics];
+    NSString *poolKey = @"127.0.0.1:11080:tcp";
+
+    CFAbsoluteTime startTime = CFAbsoluteTimeGetCurrent();
+
+    // 第一个请求：创建连接
+    NSError *error1 = nil;
+    HttpdnsNWHTTPClientResponse *response1 = [self.client performRequestWithURLString:@"http://127.0.0.1:11080/get"
+                                                                            userAgent:@"FastTest1"
+                                                                              timeout:15.0
+                                                                                error:&error1];
+    XCTAssertNotNil(response1);
+    XCTAssertEqual(response1.statusCode, 200);
+    XCTAssertEqual(self.client.connectionCreationCount, 1, @"Should create 1 connection");
+
+    [NSThread sleepForTimeInterval:0.5];
+
+    // 使用 DEBUG 辅助函数模拟 31 秒过期（无需实际等待）
+    NSArray<HttpdnsNWReusableConnection *> *connections = [self.client connectionsInPoolForKey:poolKey];
+    XCTAssertEqual(connections.count, 1);
+
+    HttpdnsNWReusableConnection *conn = connections.firstObject;
+    NSDate *expiredDate = [NSDate dateWithTimeIntervalSinceNow:-31.0];
+    [conn debugSetLastUsedDate:expiredDate];
+
+    // 第二个请求：应该检测到过期并创建新连接
+    [self.client resetPoolStatistics];
+    NSError *error2 = nil;
+    HttpdnsNWHTTPClientResponse *response2 = [self.client performRequestWithURLString:@"http://127.0.0.1:11080/get"
+                                                                            userAgent:@"FastTest2"
+                                                                              timeout:15.0
+                                                                                error:&error2];
+    XCTAssertNotNil(response2);
+    XCTAssertEqual(response2.statusCode, 200);
+
+    // 验证：创建了新连接（而非复用过期的）
+    XCTAssertEqual(self.client.connectionCreationCount, 1,
+                   @"Should create new connection (expired connection not reused)");
+    XCTAssertEqual(self.client.connectionReuseCount, 0,
+                   @"Should not reuse expired connection");
+
+    CFAbsoluteTime elapsed = CFAbsoluteTimeGetCurrent() - startTime;
+
+    // 关键验证：测试应该很快完成（< 5 秒），而非等待 30+ 秒
+    XCTAssertLessThan(elapsed, 5.0,
+                      @"Fast expiry test should complete quickly (%.1fs) without 30s wait", elapsed);
 }
 
 @end

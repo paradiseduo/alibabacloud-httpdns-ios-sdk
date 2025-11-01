@@ -38,6 +38,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 // 测试辅助方法
 - (void)debugSetLastUsedDate:(nullable NSDate *)date;
+- (void)debugSetInUse:(BOOL)inUse;
 - (void)debugInvalidate;
 
 @end
