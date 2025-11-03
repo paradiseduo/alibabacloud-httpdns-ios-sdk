@@ -33,7 +33,7 @@
     // 兼容旧路径：使用全局单例读取，但多账号场景下建议使用新init接口
     _accountId = [HttpDnsService sharedInstance].accountID;
     _timeoutInterval = [HttpDnsService sharedInstance].timeoutInterval;
-    _httpClient = [HttpdnsNWHTTPClient new];
+    _httpClient = [HttpdnsNWHTTPClient sharedInstance];
     return self;
 }
 

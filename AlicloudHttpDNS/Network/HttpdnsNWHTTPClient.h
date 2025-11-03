@@ -14,6 +14,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface HttpdnsNWHTTPClient : NSObject
 
+/// 全局共享实例，复用底层连接池；线程安全
++ (instancetype)sharedInstance;
+
 - (nullable HttpdnsNWHTTPClientResponse *)performRequestWithURLString:(NSString *)urlString
                                                             userAgent:(NSString *)userAgent
                                                               timeout:(NSTimeInterval)timeout
@@ -37,4 +40,3 @@ NS_ASSUME_NONNULL_BEGIN
 #endif
 
 NS_ASSUME_NONNULL_END
-

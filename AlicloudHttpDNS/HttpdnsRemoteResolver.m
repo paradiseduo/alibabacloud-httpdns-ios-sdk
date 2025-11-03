@@ -70,7 +70,7 @@ static dispatch_queue_t _streamOperateSyncQueue = 0;
         self.networkError = nil;
         _responseResolved = NO;
         _compeleted = NO;
-        _httpClient = [HttpdnsNWHTTPClient new];
+        _httpClient = [HttpdnsNWHTTPClient sharedInstance];
 
     }
     return self;

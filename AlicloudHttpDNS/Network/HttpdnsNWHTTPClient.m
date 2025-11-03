@@ -68,6 +68,16 @@ static const NSTimeInterval kHttpdnsNWHTTPClientDefaultTimeout = 10.0;
 
 @implementation HttpdnsNWHTTPClient
 
++ (instancetype)sharedInstance {
+    // 使用 dispatch_once 保证单例创建的线程安全与唯一性；复用连接池降低连接开销
+    static dispatch_once_t onceToken;
+    static HttpdnsNWHTTPClient *instance = nil;
+    dispatch_once(&onceToken, ^{
+        instance = [[self alloc] init];
+    });
+    return instance;
+}
+
 - (instancetype)init {
     self = [super init];
     if (self) {
