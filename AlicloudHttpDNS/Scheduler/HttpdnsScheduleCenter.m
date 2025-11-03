@@ -118,15 +118,17 @@ static int const MAX_UPDATE_RETRY_COUNT = 2;
 
 - (void)loadRegionConfigFromLocalCache {
     dispatch_async(self.scheduleFetchConfigAsyncQueue, ^{
-        NSDictionary *scheduleCenterResult = [HttpdnsPersistenceUtils getJSONFromPath:self.scheduleCenterResultPath];
-
-        if (!scheduleCenterResult) {
+        id obj = [HttpdnsPersistenceUtils getJSONFromPath:self.scheduleCenterResultPath];
+        if (![obj isKindOfClass:[NSDictionary class]]) {
+            // 本地缓存可能被旧版本或其他组件写入非字典类型，直接忽略以避免非法对象释放
             return;
         }
+        NSDictionary *scheduleCenterResult = (NSDictionary *)obj;
 
-        NSNumber *lastUpdateUnixTimestamp = [scheduleCenterResult objectForKey:kLastUpdateUnixTimestampKey];
-        if (lastUpdateUnixTimestamp) {
-            NSDate *lastUpdateDate = [NSDate dateWithTimeIntervalSince1970:lastUpdateUnixTimestamp.doubleValue];
+        // 兼容时间戳为NSNumber/NSString，屏蔽NSNull等异常输入
+        id ts = [scheduleCenterResult objectForKey:kLastUpdateUnixTimestampKey];
+        if ([ts respondsToSelector:@selector(doubleValue)]) {
+            NSDate *lastUpdateDate = [NSDate dateWithTimeIntervalSince1970:[ts doubleValue]];
             self->_lastScheduleCenterConnectDate = lastUpdateDate;
         }
         [self updateRegionConfig:scheduleCenterResult];
