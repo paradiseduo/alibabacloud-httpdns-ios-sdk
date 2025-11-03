@@ -1,6 +1,6 @@
 # Alicloud HTTPDNS iOS SDK
 
-面向 iOS 的 HTTP/HTTPS DNS 解析 SDK，提供鉴权与可选 AES 加密、IPv4/IPv6 双栈解析、缓存与调度、预解析等能力。最低支持 iOS 10.0。
+面向 iOS 的 HTTP/HTTPS DNS 解析 SDK，提供鉴权与可选 AES 加密、IPv4/IPv6 双栈解析、缓存与调度、预解析等能力。最低支持 iOS 12.0。
 
 ## 功能特性
 - 鉴权请求与可选 AES 传输加密
@@ -13,9 +13,9 @@
 在 `Podfile` 中添加：
 
 ```ruby
-platform :ios, '10.0'
+platform :ios, '12.0'
 target 'YourApp' do
-  pod 'AlicloudHTTPDNS', '~> 3.3.0'
+  pod 'AlicloudHTTPDNS', '~> 3.4.0'
 end
 ```
 
@@ -61,7 +61,7 @@ print(res?.ips ?? [])
 - 非 Mock 用例使用预置参数：AccountID `1000000`，测试域名 `*.onlyforhttpdnstest.run.place`（每年需续期）。
 
 ## 依赖与链接
-- iOS 10.0+；需链接 `CoreTelephony`、`SystemConfiguration`
+- iOS 12.0+；需链接 `CoreTelephony`、`SystemConfiguration`
 - 额外库：`sqlite3.0`、`resolv`；`OTHER_LDFLAGS` 包含 `-ObjC -lz`
 
 ## 安全说明
