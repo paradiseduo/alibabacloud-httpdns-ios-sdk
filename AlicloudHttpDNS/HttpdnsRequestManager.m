@@ -128,8 +128,6 @@ typedef struct {
         return;
     }
 
-    NSString *combinedHostString = [hosts componentsJoinedByString:@","];
-
     __weak typeof(self) weakSelf = self;
     dispatch_async(_asyncResolveHostQueue, ^{
         __strong typeof(weakSelf) strongSelf = weakSelf;
@@ -141,12 +139,23 @@ typedef struct {
             return;
         }
 
-        HttpdnsLogDebug("Pre resolve host by async lookup, hosts: %@", combinedHostString);
+        // 分批处理，每批最多5个域名
+        NSUInteger totalCount = hosts.count;
+        for (NSUInteger i = 0; i < totalCount; i += HTTPDNS_PRE_RESOLVE_BATCH_SIZE) {
+            NSUInteger length = MIN(HTTPDNS_PRE_RESOLVE_BATCH_SIZE, totalCount - i);
+            NSArray *batch = [hosts subarrayWithRange:NSMakeRange(i, length)];
 
-        HttpdnsRequest *request = [[HttpdnsRequest alloc] initWithHost:combinedHostString queryIpType:queryType];
-        request.accountId = strongSelf.accountId;
-        [request becomeNonBlockingRequest];
-        [strongSelf executePreResolveRequest:request retryCount:0];
+            NSString *combinedHostString = [batch componentsJoinedByString:@","];
+            HttpdnsLogDebug("Pre resolve host by async lookup, hosts: %@", combinedHostString);
+
+            HttpdnsRequest *request = [[HttpdnsRequest alloc] initWithHost:combinedHostString queryIpType:queryType];
+            request.accountId = strongSelf.accountId;
+            [request becomeNonBlockingRequest];
+
+            dispatch_async(_asyncResolveHostQueue, ^{
+                [strongSelf executePreResolveRequest:request retryCount:0];
+            });
+        }
     });
 }
 
